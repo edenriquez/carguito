@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { CalendarDays } from "lucide-react";
 import { useAppData } from "@/components/AppChrome";
 import { useTimeWindow } from "@/components/TimeWindowProvider";
@@ -12,7 +12,6 @@ import { applyQuery, categoryLens } from "@/lib/movimientosQuery";
 import {
     composeMonths,
     monthBounds,
-    SPAN_MONTHS,
     spanBounds,
     spanMonthKeys,
 } from "@/lib/porMes";
@@ -37,17 +36,11 @@ import { PorMesChart } from "./PorMesChart";
  * — the same idiom as a drag across the Categorías chart.
  */
 export function PorMesView({
-    tabs,
-    onLoadingChange,
 }: {
-    tabs?: ReactNode;
-    /** Told to the host each time this face starts or stops waiting on data:
-     *  it holds the page's height while a face it has never shown loads. */
-    onLoadingChange?: (loading: boolean) => void;
 } = {}) {
     const { dataVersion } = useAppData();
     const { anchor, selectCustom } = useTimeWindow();
-    const { statementIds, labels: bankLabels } = useBankScope(dataVersion);
+    const { statementIds } = useBankScope(dataVersion);
     const categories = useCategories();
     const { query, openModal } = useMovimientosSearch();
     const [openKey, setOpenKey] = useState<string | null>(null);
@@ -64,13 +57,6 @@ export function PorMesView({
         () => (listed ? composeMonths(listed, categories, keys) : null),
         [listed, categories, keys]
     );
-
-    const waiting = !error && (loading || reading === null);
-    const report = useRef(onLoadingChange);
-    report.current = onLoadingChange;
-    useEffect(() => {
-        report.current?.(waiting);
-    }, [waiting]);
 
     // Stable on purpose: it is part of the chart's options, and a new options
     // object on every render means Apex tearing the chart down and redrawing
@@ -94,50 +80,21 @@ export function PorMesView({
         openModal("por-mes", { ...query, categoryIds: [categoryKey] });
     }
 
-    /** "6 MESES · BANAMEX, NU" — the scope the reading is true under. */
-    const scope = [
-        `${SPAN_MONTHS} meses`,
-        ...(bankLabels.length ? [bankLabels.join(", ")] : []),
-    ].join(" · ");
-
-    const head = (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="eyebrow">Periodo · {scope}</p>
-            {tabs}
-        </div>
-    );
-
     if (error) {
         return (
             <div className="space-y-4">
-                <div className="flex justify-end">{tabs}</div>
                 <BackendNotice what="tus movimientos" detail={error} />
             </div>
         );
     }
 
     if (reading === null) {
-        return (
-            <div className="space-y-5">
-                <section className="card space-y-4">
-                    {head}
-                    <Skeleton className="h-6 w-28" />
-                    <Skeleton className="h-4 w-56" />
-                    <Skeleton className="h-[280px] w-full" />
-                </section>
-                <div className="rounded-card border border-mist bg-paper p-5 shadow-card sm:p-6">
-                    {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <Skeleton key={i} className="my-3 h-11" />
-                    ))}
-                </div>
-            </div>
-        );
+        return <PorMesSkeleton />;
     }
 
     if (reading.listed.length === 0) {
         return (
             <div className="space-y-4">
-                <div className="flex justify-end">{tabs}</div>
                 <EmptyState icon={CalendarDays} title="Ningún cargo en los últimos meses">
                     Sube un estado de cuenta y el mes aparece aquí.
                 </EmptyState>
@@ -148,7 +105,6 @@ export function PorMesView({
     return (
         <div className="space-y-5">
             <section className="card space-y-5">
-                {head}
                 <div className="min-w-0">
                     <h2 className="text-title-sm font-normal text-ink">Por mes</h2>
                     <p className="mt-1 text-body-sm text-graphite">
@@ -177,6 +133,32 @@ export function PorMesView({
                     onVerMes={verMes}
                     onVerCategoria={verCategoria}
                 />
+            </section>
+        </div>
+    );
+}
+
+/** The face's geometry before its data: the reading card (title, average,
+ *  the bar chart, the base note) and the month list under it. */
+function PorMesSkeleton() {
+    return (
+        <div className="space-y-5" aria-busy>
+            <section className="card space-y-5">
+                <div className="space-y-2">
+                    <Skeleton className="h-6 w-28" />
+                    <Skeleton className="h-4 w-56" />
+                </div>
+                <Skeleton className="h-[280px] w-full" />
+                <Skeleton className="h-3 w-72 max-w-full" />
+            </section>
+            <section className="rounded-card border border-mist bg-paper p-5 shadow-card sm:p-6">
+                <div className="mb-3 flex items-center justify-between">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-5 w-24" />
+                </div>
+                {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="my-3 h-11" />
+                ))}
             </section>
         </div>
     );

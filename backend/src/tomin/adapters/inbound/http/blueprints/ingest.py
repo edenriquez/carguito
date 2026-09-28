@@ -129,8 +129,9 @@ def ingest_receipt():
     """Accept the text a device read off a photo of a grocery ticket.
 
     Same envelope, same custody, one step later in a different pipeline: the
-    photo stays on the phone (docs/custody-plan.md G1/G2) and only the OCR
-    lines travel, sealed. What comes back is the structured basket plus, when
+    photo stays on the device that took or holds it -- the phone's recognizer
+    or a Tesseract worker in the browser tab (docs/custody-plan.md G1/G2) --
+    and only the OCR lines travel, sealed. What comes back is the structured basket plus, when
     the ticket could not attach itself to a movement, the movements it might
     belong to — the phone asks, and a wrong attachment is never guessed into
     place.

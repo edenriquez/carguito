@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MessageSquarePlus, Trash2 } from "lucide-react";
+import { ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { dayLabel, mxn2 } from "@/lib/format";
 import type { Receipt, ReceiptItem, ReferenceTerm } from "@/lib/prices";
 import { Button } from "@/components/ui";
 import { track } from "@/lib/telemetry";
-import type { Attachment } from "./PriceChat";
 import { fold } from "./basket";
 
 /**
@@ -27,10 +26,6 @@ import { fold } from "./basket";
  * further down. The data is the face's, not this list's: the basket bar above
  * and the product book below read the same tickets, so the tickets are handed
  * in rather than fetched here.
- *
- * A line's question is asked from the face's one chat, not from a thread per
- * ticket: pointing at a line hands it to that chat as a chip. One place to
- * ask keeps the transcript in one place too.
  */
 export function ReceiptGroups({
     receipts,
@@ -38,7 +33,6 @@ export function ReceiptGroups({
     query,
     onAssociate,
     onDelete,
-    onAsk,
     onVerCargo,
     focus,
 }: {
@@ -47,8 +41,6 @@ export function ReceiptGroups({
     query: string;
     onAssociate: (productKey: string, term: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
-    /** A line handed to the face's chat as the subject of the next question. */
-    onAsk: (item: Attachment) => void;
     /** The charge this ticket was matched to, in the movimientos modal. */
     onVerCargo: (receipt: Receipt) => void;
     /** A ticket another card asked to see: opened and scrolled to. `gen`
@@ -155,7 +147,6 @@ export function ReceiptGroups({
                                 onDelete={() => remove(receipt.id)}
                                 terms={terms}
                                 onAssociate={onAssociate}
-                                onAsk={onAsk}
                                 onVerCargo={() => onVerCargo(receipt)}
                             />
                         </li>
@@ -177,7 +168,6 @@ function ReceiptGroup({
     onDelete,
     terms,
     onAssociate,
-    onAsk,
     onVerCargo,
 }: {
     receipt: Receipt;
@@ -186,7 +176,6 @@ function ReceiptGroup({
     onDelete: () => Promise<void>;
     terms: Record<string, ReferenceTerm>;
     onAssociate: (productKey: string, term: string) => Promise<void>;
-    onAsk: (item: Attachment) => void;
     onVerCargo: () => void;
 }) {
     const count = receipt.items.length;
@@ -252,7 +241,6 @@ function ReceiptGroup({
                         receipt={receipt}
                         terms={terms}
                         onAssociate={onAssociate}
-                        onAsk={onAsk}
                     />
                     {receipt.transaction_id !== null && (
                         <div className="flex justify-end border-t border-muted/70 px-5 py-2 sm:px-6">
@@ -353,12 +341,10 @@ function ReceiptLines({
     receipt,
     terms,
     onAssociate,
-    onAsk,
 }: {
     receipt: Receipt;
     terms: Record<string, ReferenceTerm>;
     onAssociate: (productKey: string, term: string) => Promise<void>;
-    onAsk: (item: Attachment) => void;
 }) {
     const gap = receipt.total === null ? null : receipt.total - receipt.items_total;
     // A centavo of rounding is not a missing line. Anything above it is, and
@@ -402,9 +388,6 @@ function ReceiptLines({
                                         item={item}
                                         term={terms[item.product_key]}
                                         onAssociate={onAssociate}
-                                        onAsk={() =>
-                                            onAsk({ key: item.product_key, label: item.description })
-                                        }
                                     />
                                 ))}
                         </tbody>
@@ -430,12 +413,10 @@ function Line({
     item,
     term,
     onAssociate,
-    onAsk,
 }: {
     item: ReceiptItem;
     term?: ReferenceTerm;
     onAssociate: (productKey: string, term: string) => Promise<void>;
-    onAsk: () => void;
 }) {
     // The OCR line is the evidence for everything to the right. When the
     // reading of it is the same text there is nothing to show twice.
@@ -466,20 +447,6 @@ function Line({
             </td>
             <td className="tabular w-24 py-2 text-right align-top text-ink">
                 {mxn2(item.amount)}
-            </td>
-            <td className="py-2 pl-3 text-right align-top">
-                {/* Pointing, not wording: this is how a line becomes the subject
-                    of the question below, and the only thing that triggers a
-                    reference lookup. */}
-                <button
-                    type="button"
-                    onClick={onAsk}
-                    aria-label={`Preguntar por ${item.description}`}
-                    title="Preguntar por esta línea"
-                    className="rounded-control p-1 text-ash hover:bg-fog hover:text-ink"
-                >
-                    <MessageSquarePlus size={15} aria-hidden />
-                </button>
             </td>
         </tr>
     );

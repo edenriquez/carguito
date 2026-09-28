@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { CalendarDays } from "lucide-react";
 import { useAppData } from "@/components/AppChrome";
 import { useTimeWindow } from "@/components/TimeWindowProvider";
@@ -53,15 +53,11 @@ import { useReveal } from "./useReveal";
  * nómina in Plan. Without it those cards ask for it instead of guessing.
  */
 export function EstadoView({
-    tabs,
-    onLoadingChange,
 }: {
-    tabs?: ReactNode;
-    onLoadingChange?: (loading: boolean) => void;
 } = {}) {
     const { dataVersion } = useAppData();
     const { anchor, selectCustom } = useTimeWindow();
-    const { statementIds, labels: bankLabels } = useBankScope(dataVersion);
+    const { statementIds } = useBankScope(dataVersion);
     const categories = useCategories();
     const { openModal } = useMovimientosSearch();
 
@@ -76,51 +72,21 @@ export function EstadoView({
     const { income, source, setDeclared } = useIngresoMensual(items, keys);
     const [editing, setEditing] = useState(false);
 
-    const waiting = !error && (loading || reading === null);
-    const report = useRef(onLoadingChange);
-    report.current = onLoadingChange;
-    useEffect(() => {
-        report.current?.(waiting);
-    }, [waiting]);
-
-    const scope = [`${SPAN_MONTHS} meses`, ...(bankLabels.length ? [bankLabels.join(", ")] : [])].join(" · ");
-    const head = (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="eyebrow">Periodo · {scope}</p>
-            {tabs}
-        </div>
-    );
-
     if (error) {
         return (
             <div className="space-y-4">
-                <div className="flex justify-end">{tabs}</div>
                 <BackendNotice what="tus movimientos" detail={error} />
             </div>
         );
     }
 
     if (reading === null) {
-        return (
-            <div className="space-y-5">
-                <section className="card space-y-4">
-                    {head}
-                    <Skeleton className="h-9 w-80" />
-                    <Skeleton className="h-4 w-56" />
-                </section>
-                <div className="grid gap-5 lg:grid-cols-2">
-                    {[0, 1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-[300px] rounded-card" />
-                    ))}
-                </div>
-            </div>
-        );
+        return <EstadoSkeleton />;
     }
 
     if (reading.count === 0) {
         return (
             <div className="space-y-4">
-                <div className="flex justify-end">{tabs}</div>
                 <EmptyState icon={CalendarDays} title="Todavía no hay nada que leer">
                     Sube un estado de cuenta y Tomin lo lee aquí.
                 </EmptyState>
@@ -196,7 +162,6 @@ export function EstadoView({
     return (
         <div className="space-y-5">
             <section className="card space-y-4">
-                {head}
                 <div className="min-w-0">
                     <h2 className="font-display text-title-lg font-normal text-ink">Tu estado de cuenta, leído.</h2>
                     <IncomeLine
@@ -416,5 +381,28 @@ function IncomeLine({ income, source, editing, onEdit, onSave }: {
                 {income ? "Cambiar" : "Agregar"}
             </button>
         </p>
+    );
+}
+
+/** The reading's geometry before the reading: the title card, then the
+ *  eight chart cards the grid draws, each with its title, its chart and its
+ *  foot line. */
+function EstadoSkeleton() {
+    return (
+        <div className="space-y-5" aria-busy>
+            <section className="card space-y-4">
+                <Skeleton className="h-9 w-80 max-w-full" />
+                <Skeleton className="h-4 w-56" />
+            </section>
+            <div className="grid gap-5 lg:grid-cols-2">
+                {Array.from({ length: 8 }).map((_, i) => (
+                    <section key={i} className="card flex min-w-0 flex-col gap-4">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-[200px] w-full" />
+                        <Skeleton className="h-4 w-2/3" />
+                    </section>
+                ))}
+            </div>
+        </div>
     );
 }

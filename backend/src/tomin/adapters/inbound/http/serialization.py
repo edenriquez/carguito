@@ -335,6 +335,9 @@ def price_point_json(point: PricePoint, basis: str) -> dict:
         "receipt_id": str(point.receipt_id),
         "transaction_id": str(point.transaction_id) if point.transaction_id else None,
         "purchased_at": _iso(point.purchased_at),
+        # The photo's own timestamp: the fallback date for a ticket whose
+        # print had none the reader could use.
+        "captured_at": _iso(point.captured_at),
         "store": point.store,
         "description": point.description,
         "amount": _num(point.amount),

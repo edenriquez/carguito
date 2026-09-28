@@ -444,10 +444,10 @@ function Headline({
                     <div className="flex flex-wrap items-center justify-end gap-x-3">
                         {suggestedCount > 0 && (
                             <Link
-                                href="/?cara=recurrentes"
+                                href="/"
                                 className="text-body-sm text-graphite underline decoration-mist underline-offset-4 hover:text-ink"
                             >
-                                Confirmar en Cargos recurrentes →
+                                Confirmar en Movimientos › Cargos recurrentes →
                             </Link>
                         )}
                         {onGoToIngresos && !loading && (
