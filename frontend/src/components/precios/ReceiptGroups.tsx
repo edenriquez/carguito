@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { dayLabel, mxn2 } from "@/lib/format";
+import { fromIso } from "@/lib/porMes";
 import type { Receipt, ReceiptItem, ReferenceTerm } from "@/lib/prices";
 import { Button } from "@/components/ui";
 import { track } from "@/lib/telemetry";
@@ -30,7 +31,6 @@ import { fold } from "./basket";
 export function ReceiptGroups({
     receipts,
     terms,
-    query,
     onAssociate,
     onDelete,
     onVerCargo,
@@ -38,7 +38,6 @@ export function ReceiptGroups({
 }: {
     receipts: Receipt[];
     terms: Record<string, ReferenceTerm>;
-    query: string;
     onAssociate: (productKey: string, term: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
     /** The charge this ticket was matched to, in the movimientos modal. */
@@ -61,23 +60,7 @@ export function ReceiptGroups({
         return () => window.clearTimeout(t);
     }, [focus]);
 
-    // Unlike the product book, this search is local: the ticket list is one
-    // page of baskets the user already has, and a round-trip per keystroke to
-    // re-filter what is already on screen would be slower and no more correct.
-    const shown = useMemo(() => {
-        const q = fold(query);
-        const all = [...receipts].sort(byNewest);
-        if (!q) return all;
-        return all.filter(
-            (r) =>
-                fold(r.store ?? "").includes(q) ||
-                r.items.some(
-                    (i) =>
-                        fold(i.description).includes(q) ||
-                        fold(terms[i.product_key]?.term ?? "").includes(q)
-                )
-        );
-    }, [receipts, query, terms]);
+    const shown = useMemo(() => [...receipts].sort(byNewest), [receipts]);
 
     function toggle(id: string) {
         if (!open.has(id)) track("precios.ticket_open", { open_before: open.size });
@@ -532,12 +515,21 @@ export function TermTag({
     );
 }
 
-/** "25 ago", the same shape every other row in the app uses for a date. */
-export function dateLabel(receipt: { purchased_at: string | null; captured_at: string | null }): string {
-    const iso = receipt.purchased_at ?? receipt.captured_at;
-    if (!iso) return "fecha ilegible";
-    const date = new Date(iso);
-    return Number.isNaN(date.getTime()) ? iso : dayLabel(date);
+/** "25 ago · 19:42", the same shape every other row in the app uses for a
+ *  date, plus the clock when the ticket printed one. A ticket with no
+ *  legible date falls back to the photo's, marked "≈". */
+export function dateLabel(receipt: {
+    purchased_at: string | null;
+    purchased_time?: string | null;
+    captured_at: string | null;
+}): string {
+    if (receipt.purchased_at) {
+        const day = dayLabel(fromIso(receipt.purchased_at));
+        return receipt.purchased_time ? `${day} · ${receipt.purchased_time}` : day;
+    }
+    if (!receipt.captured_at) return "fecha ilegible";
+    const date = new Date(receipt.captured_at);
+    return Number.isNaN(date.getTime()) ? receipt.captured_at : `≈ ${dayLabel(date)}`;
 }
 
 /** Newest purchase first; a ticket whose date OCR could not read goes last

@@ -20,7 +20,7 @@ import json
 import logging
 import re
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, time
 from decimal import Decimal, InvalidOperation
 
 from ....application.dtos.receipts import ParsedReceipt, ParsedReceiptItem
@@ -49,10 +49,11 @@ _FENCE = re.compile(r"^```(?:json)?|```$", re.MULTILINE)
 RECEIPT_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["store", "purchased_at", "total", "items"],
+    "required": ["store", "purchased_at", "purchased_time", "total", "items"],
     "properties": {
         "store": {"type": ["string", "null"]},
         "purchased_at": {"type": ["string", "null"]},
+        "purchased_time": {"type": ["string", "null"]},
         "total": {"type": ["string", "null"]},
         "items": {
             "type": "array",
@@ -75,6 +76,13 @@ RECEIPT_SCHEMA = {
 #: Cold and pinned to the schema: reading a ticket is extraction, not prose.
 OPTIONS = ChatOptions(
     temperature=0,
+    # A sixty-line ticket is ~3k tokens of JSON, and a reasoning model spends
+    # its budget thinking before it writes any of it. The default 4k was
+    # being exhausted mid-list. Not higher: a metered provider *reserves* the
+    # budget up front and refuses the call outright (402) when the account
+    # cannot cover it, which is worse than a cut-short answer — that one
+    # still salvages its complete items.
+    max_tokens=6000,
     response_format=json_schema_format("ticket", RECEIPT_SCHEMA),
 )
 
@@ -86,6 +94,7 @@ Devuelves EXCLUSIVAMENTE un objeto JSON, sin explicación y sin markdown:
 {
   "store": "SORIANA HIPER" | null,
   "purchased_at": "2026-08-22" | null,
+  "purchased_time": "19:42" | null,
   "total": "141.60" | null,
   "items": [
     {"line_no": 4, "description": "LECHE LALA ENT 1L", "amount": "28.50",
@@ -109,10 +118,26 @@ Reglas:
 6. `total` es lo que el cliente pagó por la mercancía (la línea TOTAL), no el
    efectivo entregado ni el cambio.
 7. Los montos van como cadenas con punto decimal: "28.50", no 28.5.
-8. Fecha en formato ISO (aaaa-mm-dd). El ticket la imprime dd/mm/aaaa.
+8. Fecha en formato ISO (aaaa-mm-dd). El ticket la imprime dd/mm/aaaa o
+   dd/mm/aa, casi siempre al FINAL del ticket, con la hora hh:mm a su derecha.
+   Si hay varias fechas, la de compra es la que va junto a una hora. Devuelve
+   esa hora en `purchased_time` ("14:32"); null si no la hay.
 
-Si el texto no parece un ticket de compra, devuelve {"store": null,
-"purchased_at": null, "total": null, "items": []}."""
+9. El OCR viene de una foto de papel térmico y es RUIDOSO: letras sueltas al
+   inicio y al final de cada línea, códigos de barras partidos, y precios con
+   la letra de impuesto pegada. Solo corrige lo que está escrito: "50.004"
+   es "50.00" más la letra "A"; "784.D0A" es "784.00"; "46-001" es "46.00".
+   Si en la línea (o en la siguiente, cuando el precio va debajo del nombre)
+   NO hay un precio con sus dígitos legibles, OMITE la partida. Nunca
+   deduzcas un precio del código de barras, de otra partida ni de memoria:
+   una partida con precio inventado es peor que una partida faltante.
+10. No devuelvas `items: []` por ruido. Si hay al menos una línea con un
+   precio legible, extrae lo que sí se lea. Solo devuelve la lista vacía si
+   el texto no tiene ningún precio.
+
+Si el texto no parece un ticket de compra (ningún precio, ninguna tienda),
+devuelve {"store": null, "purchased_at": null, "purchased_time": null,
+"total": null, "items": []}."""
 
 
 class LlmReceiptReader:
@@ -149,14 +174,17 @@ class LlmReceiptReader:
         if proposal is None:
             logger.info("receipt: model answer did not parse, kept the heuristic read")
             return baseline
-        return _closer_to_total(proposal, baseline)
+        return _fill_gaps(_closer_to_total(proposal, baseline), baseline, proposal)
 
     # --- parsing ---------------------------------------------------------
     def _parse(self, raw: str, lines: list[str]) -> ParsedReceipt | None:
+        text = _FENCE.sub("", raw).strip()
         try:
-            payload = json.loads(_FENCE.sub("", raw).strip())
+            payload = json.loads(text)
         except (ValueError, TypeError):
-            return None
+            payload = _salvage(text)
+            if payload is None:
+                return None
         if not isinstance(payload, dict):
             return None
 
@@ -169,16 +197,69 @@ class LlmReceiptReader:
         return ParsedReceipt(
             store=_text(payload.get("store")),
             purchased_at=_date(payload.get("purchased_at")),
+            purchased_time=_time(payload.get("purchased_time")),
             total=_amount(payload.get("total")),
             items=items,
             reader=self.label,
         )
 
 
+def _salvage(text: str) -> dict | None:
+    """What can be kept of an answer that stopped mid-list.
+
+    A model that ran out of tokens leaves ``{"store": …, "items": [{…}, {…}, {"line``
+    behind. Everything up to the last complete item is still the model's
+    reading and still adds up, so the list is cut there and closed. Anything
+    that does not start like the object we asked for is not salvaged: guessing
+    at prose is how invented items get in.
+    """
+    if not text.startswith("{"):
+        return None
+    start = text.find('"items"')
+    if start < 0:
+        return None
+    # The last item object that closed before the cut.
+    end = text.rfind("}", start)
+    while end > start:
+        candidate = text[: end + 1] + "]}"
+        try:
+            payload = json.loads(candidate)
+        except ValueError:
+            end = text.rfind("}", start, end)
+            continue
+        if isinstance(payload, dict) and isinstance(payload.get("items"), list):
+            logger.info("receipt: model answer was cut short; kept %d item(s)", len(payload["items"]))
+            return payload
+        end = text.rfind("}", start, end)
+    return None
+
+
 def _numbered(lines: list[str]) -> str:
     """The OCR lines with their indices, which the model answers in terms of."""
     body = "\n".join(f"{i}: {line}" for i, line in enumerate(lines))
     return f"Líneas del OCR:\n{body}"
+
+
+def _fill_gaps(
+    chosen: ParsedReceipt, baseline: ParsedReceipt, proposal: ParsedReceipt
+) -> ParsedReceipt:
+    """The winning read, with the header facts the other one saw and it missed.
+
+    The contest is about the *items*: which list adds up. The store, the date
+    and the time are single facts either reader may find, and a model that
+    read every line right but answered ``purchased_at: null`` should not cost
+    the ticket the date the regexes had already found at its foot. ``reader``
+    stays the winner's: the items are what that label vouches for.
+    """
+    other = baseline if chosen is proposal else proposal
+    return ParsedReceipt(
+        store=chosen.store or other.store,
+        purchased_at=chosen.purchased_at or other.purchased_at,
+        purchased_time=chosen.purchased_time or other.purchased_time,
+        total=chosen.total if chosen.total is not None else other.total,
+        items=chosen.items,
+        reader=chosen.reader,
+    )
 
 
 def _closer_to_total(proposal: ParsedReceipt, baseline: ParsedReceipt) -> ParsedReceipt:
@@ -211,6 +292,12 @@ def _item(entry, lines: list[str]) -> ParsedReceiptItem | None:
         return None
     line_no = entry.get("line_no")
     line_no = line_no if isinstance(line_no, int) and 0 <= line_no < len(lines) else -1
+    # The price has to be on the ticket. A model reading noisy OCR will,
+    # asked for a number, produce one; requiring the digits it names to sit
+    # on the line it cites (or the one under it, where printers put the
+    # arithmetic) is what keeps a guessed price out of the price history.
+    if line_no < 0 or not _evidenced(amount, lines[line_no : line_no + 2]):
+        return None
     quantity = _amount(entry.get("quantity"))
     return ParsedReceiptItem(
         line_no=line_no,
@@ -223,6 +310,25 @@ def _item(entry, lines: list[str]) -> ParsedReceiptItem | None:
         quantity=quantity if quantity and quantity > 0 else None,
         unit_price=_amount(entry.get("unit_price")),
     )
+
+
+def _evidenced(amount: Decimal, evidence: list[str]) -> bool:
+    """Whether the digits of ``amount`` appear on one of the cited lines.
+
+    Compared as digit strings so "50.004", "50-00A" and "5000" all count for
+    50.00; a leading barcode (eight or more digits) is dropped first so that
+    "5" is not found inside "7501005117708".
+    """
+    wanted = f"{amount:.2f}".replace(".", "").lstrip("0") or "0"
+    for line in evidence:
+        stripped = _BARCODE.sub(" ", line)
+        digits = "".join(c for c in stripped if c.isdigit())
+        if wanted in digits:
+            return True
+    return False
+
+
+_BARCODE = re.compile(r"\d{8,}")
 
 
 def _text(value) -> str | None:
@@ -248,5 +354,14 @@ def _date(value) -> date | None:
         return None
     try:
         return date.fromisoformat(value.strip()[:10])
+    except ValueError:
+        return None
+
+
+def _time(value) -> time | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return time.fromisoformat(value.strip()[:5])
     except ValueError:
         return None

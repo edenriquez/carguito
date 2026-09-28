@@ -27,6 +27,10 @@ dependencies = [
 [project.optional-dependencies]
 # Heavy OCR engines are optional; the pipeline falls back gracefully without them.
 ocr = ["pytesseract>=0.3.10", "pdf2image>=1.17", "pillow>=10.0"]
+# Reading ticket *photos* uploaded from the web (PaddleOCR models on
+# onnxruntime, CPU). Without it POST /api/receipts/upload answers 503; the
+# phone app never needs it.
+receipts = ["rapidocr-onnxruntime>=1.3", "pillow>=10.0"]
 # pypdf only encrypts the password-protected PDF fixture in tests.
 dev = ["pytest>=8.0", "ruff>=0.4", "pypdf>=5.0"]
 

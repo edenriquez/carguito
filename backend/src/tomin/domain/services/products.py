@@ -65,6 +65,32 @@ _SIZE = re.compile(
 #: *dropped* from the name — the pack count belongs to quantity, not identity.
 _PACK = re.compile(r"\b\d+\s*(?:pack|pzas?|pz|piezas?|unid(?:ades?)?)\b")
 
+#: A zero where a camera read the letter O: ``C0ST FRIJ0``, ``D0L0RES``.
+#: Only a zero touching letters on both sides, or closing a token that has
+#: no other digit, is a letter; the zeros of ``LALA900G`` and ``350G`` stay.
+_ZERO_BETWEEN = re.compile(r"(?<=[a-z])0(?=[a-z])", re.IGNORECASE)
+_ZERO_AT_END = re.compile(r"^([a-z]+)0$", re.IGNORECASE)
+
+
+#: The name given to a ticket row whose price was read but whose name was
+#: not (a crease, a smudge). It keeps the basket's arithmetic honest and is
+#: excluded from the price book: ``product_key`` maps it to "", the key for
+#: "no product here".
+UNREADABLE_LINE = "(línea ilegible)"
+
+
+def unzero(text: str) -> str:
+    """OCR zeros back into the O's they were printed as."""
+    out = []
+    for token in text.split():
+        fixed = _ZERO_BETWEEN.sub("O", token)
+        fixed = _ZERO_BETWEEN.sub("O", fixed)  # ``C0L0R``: overlapping matches
+        if not any(c.isdigit() for c in fixed[:-1]):
+            fixed = _ZERO_AT_END.sub(lambda m: m.group(1) + "O", fixed)
+        out.append(fixed)
+    return " ".join(out)
+
+
 #: Store numbers: barcodes (long), PLU/line codes (short, standalone digits).
 _LONG_CODE = re.compile(r"\b\d{5,}\b")
 _BARE_NUMBER = re.compile(r"\b\d+(?:[.,]\d+)?\b")
@@ -205,7 +231,9 @@ def product_key(description: str) -> str:
     stray ``TOTAL`` the reader mistook for an item, a line of dashes), and the
     comparison skips those rather than inventing a product called "".
     """
-    text = fold(description)
+    if description == UNREADABLE_LINE:
+        return ""
+    text = fold(unzero(description))
     if not text:
         return ""
     # Order matters: sizes and packs are read *before* the bare numbers that

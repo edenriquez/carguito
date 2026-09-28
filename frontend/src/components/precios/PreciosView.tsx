@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Camera } from "lucide-react";
-import { BackendNotice, EmptyState, SearchInput, Skeleton } from "@/components/ui";
+import { BackendNotice, EmptyState, Skeleton } from "@/components/ui";
 import { useAppData } from "@/components/AppChrome";
 import { useTimeWindow } from "@/components/TimeWindowProvider";
 import { CompositionBar } from "@/components/movimientos/CompositionBar";
@@ -34,9 +34,9 @@ import { useReceipts } from "./useReceipts";
  * Every figure here is a price the user paid, read off a ticket they
  * photographed. Nothing is fetched from a store, nothing is estimated.
  *
- * Tickets come in two ways and both keep the photo where it was taken: the
- * phone app reads it with the native recognizer, and this page reads it in a
- * worker in the browser (`lib/receipts.ts`). Either way only the text travels.
+ * Tickets come in two ways. The phone app reads the photo itself and sends
+ * text; this page uploads the photo and the backend reads it and keeps only
+ * the text (`lib/receipts.ts`). Either way what is stored is text.
  *
  * The period does **not** filter anything here, and the eyebrow says so. A
  * price history is about the same product over time, and a window that hid
@@ -50,7 +50,6 @@ export function PreciosView({
     const { selectCustom } = useTimeWindow();
     const { openModal } = useMovimientosSearch();
     const { receipts, error, terms, associate, remove } = useReceipts(dataVersion);
-    const [query, setQuery] = useState("");
     const [activeSlice, setActiveSlice] = useState<string | null>(null);
     const [focus, setFocus] = useState<{ id: string; gen: number } | null>(null);
     // A ticket read here lands in the same lists the phone's do, and may have
@@ -98,8 +97,8 @@ export function PreciosView({
                         />
                     }
                 >
-                    Sube la foto de un ticket del súper. Se lee aquí, en tu navegador, y
-                    solo viaja el texto; verás el precio de cada producto.
+                    Sube la foto de un ticket del súper. Tomin la lee y se queda solo con
+                    el texto; la foto no se guarda. Verás el precio de cada producto.
                 </EmptyState>
                 <TicketQueue
                     items={upload.queue}
@@ -125,14 +124,7 @@ export function PreciosView({
                             canasta
                         </p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <SearchInput
-                            onSearch={setQuery}
-                            placeholder="Buscar tienda o producto"
-                            aria-label="Buscar tienda o producto"
-                        />
-                        <TicketUploadButton onPick={upload.pick} busy={upload.busy} />
-                    </div>
+                    <TicketUploadButton onPick={upload.pick} busy={upload.busy} />
                 </div>
                 <TicketQueue
                     items={upload.queue}
@@ -154,7 +146,6 @@ export function PreciosView({
             <ReceiptGroups
                 receipts={receipts}
                 terms={terms}
-                query={query}
                 onAssociate={associate}
                 onDelete={remove}
                 onVerCargo={verCargo}
@@ -162,7 +153,6 @@ export function PreciosView({
             />
 
             <ProductosList
-                query={query}
                 terms={terms}
                 dataVersion={dataVersion}
                 onVerTicket={(id) => setFocus((cur) => ({ id, gen: (cur?.gen ?? 0) + 1 }))}
@@ -174,7 +164,7 @@ export function PreciosView({
 }
 
 /** The face's geometry before its tickets: the reading card (title, count
- *  line, search and upload, the basket bar), the ticket list and the price
+ *  line, the upload button, the basket bar), the ticket list and the price
  *  book under it. */
 function PreciosSkeleton() {
     return (
@@ -185,10 +175,7 @@ function PreciosSkeleton() {
                         <Skeleton className="h-6 w-24" />
                         <Skeleton className="h-4 w-64 max-w-full" />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Skeleton className="h-9 w-56 rounded-input" />
-                        <Skeleton className="h-8 w-28 rounded-control" />
-                    </div>
+                    <Skeleton className="h-8 w-28 rounded-control" />
                 </div>
                 <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-3 w-56" />

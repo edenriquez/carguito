@@ -1,45 +1,22 @@
 /**
- * Reading a ticket from the browser, the way the phone reads it.
+ * Uploading a ticket photo from the browser.
  *
- * The phone's promise (`mobile/src/lib/receipt.ts`) is that the photo never
- * leaves the device: OCR runs locally and only the text travels, sealed. The
- * web keeps the same promise with the same protocol. The image is read here,
- * in a Tesseract worker inside the browser, and what goes to the backend is
- * the envelope `POST /api/ingest/receipt` already accepts from the phone — a
- * `crypto_box` sealed to the server's X25519 key with a fresh ephemeral
- * keypair. The backend does not learn which client sent it and does not need
- * to: the lines are the lines.
+ * The phone reads its own photos and sends text (`mobile/src/lib/receipt.ts`).
+ * The web tried to do the same with Tesseract in a worker, and on photographed
+ * thermal paper it read a third of the prices — so the web's door is
+ * different: the photo goes to the backend, which reads it with a recognizer
+ * trained on photographs and keeps nothing but the rows. The same honesty the
+ * web's statement upload already has, and this file says so wherever the user
+ * can read it.
  *
- * What is different from the phone is trust in the key. The phone pins the
- * first key it sees; a browser has nowhere durable enough to pin, so the key is
- * fetched per session over the same TLS the rest of the app rides on. The
- * envelope still buys what it buys everywhere else — an opaque body past any
- * proxy that terminates TLS.
+ * What this file still does locally is the part a browser is good at: decode
+ * whatever the picker handed over (HEIC included), turn it the way the camera
+ * meant, and shrink it to what the recognizer wants, so a 12-megapixel photo
+ * leaves as a sub-megabyte JPEG.
  */
 
-import nacl from "tweetnacl";
-import naclUtil from "tweetnacl-util";
-import { API_URL, request } from "./api";
+import { API_URL } from "./api";
 import type { Receipt } from "./prices";
-
-export const ALGORITHM = "x25519-xsalsa20-poly1305";
-export const ENVELOPE_VERSION = 1;
-export const RECEIPT_EXTRACTOR = "tesseract-web";
-
-/** What the backend's `POST /api/ingest/receipt` accepts, before sealing.
- *  Mirrors the phone's `ReceiptPayload` field for field. */
-export type ReceiptPayload = {
-    v: 1;
-    kind: "receipt";
-    filename: string;
-    /** Hex SHA-256 of the ORIGINAL image bytes; the backend dedups on this. */
-    content_sha256: string;
-    lines: string[];
-    captured_at: string;
-    /** Which OCR read it, for tracing reading quality back to its engine. */
-    extractor: string;
-    transaction_id?: string | null;
-};
 
 export type ReceiptSuggestion = {
     transaction: { id: string; date: string; description: string | null; amount: number };
@@ -47,6 +24,7 @@ export type ReceiptSuggestion = {
     reason: string;
 };
 
+/** The answer to a ticket that just came in: the same shape the phone gets. */
 export type ReceiptUploadResponse = {
     receipt_id: string;
     receipt: Receipt;
@@ -55,16 +33,16 @@ export type ReceiptUploadResponse = {
     prices_url: string;
 };
 
-type ServerKey = { key_id: string; algorithm: string; public_key: string };
-
 export type TicketErrorCode =
     /** The recognizer found no text: a blurry photo, or not a ticket. */
     | "no_text"
-    /** The browser could not decode the file as an image. */
+    /** The file could not be decoded as an image, here or on the server. */
     | "unreadable"
     /** The backend already has this photo (same bytes). */
     | "duplicate"
-    /** Anything the server refused, with its own words. */
+    /** The server has no OCR installed for tickets. */
+    | "no_ocr"
+    /** Anything else the server refused, with its own words. */
     | "rejected";
 
 export class TicketError extends Error {
@@ -86,6 +64,8 @@ export function ticketMessage(error: unknown): string {
                 return "No pude abrir esta imagen. Entran JPG, PNG, WebP o HEIC.";
             case "duplicate":
                 return "Este ticket ya estaba leído.";
+            case "no_ocr":
+                return "Este servidor no tiene lector de tickets instalado.";
             default:
                 return error.message;
         }
@@ -94,12 +74,11 @@ export function ticketMessage(error: unknown): string {
 }
 
 /* -------------------------------------------------------------------------- */
-/* OCR, in the browser                                                         */
+/* The photo, made ready                                                       */
 /* -------------------------------------------------------------------------- */
 
-/** Longest side the photo is scaled to before OCR. A 12-megapixel phone
- *  photo is more than Tesseract wants and takes seconds longer to read; a
- *  ticket's print is legible well under this. */
+/** Longest side the photo is scaled to before upload. What the backend's
+ *  recognizer reads at; anything larger is bytes on the wire for nothing. */
 const MAX_SIDE = 2000;
 
 /** An iPhone's default photo format. Chrome and Firefox cannot decode it,
@@ -117,16 +96,16 @@ export function isHeic(file: File): boolean {
     );
 }
 
-/** Whether the picker's file is something this reader will try. */
+/** Whether the picker's file is something this uploader will try. */
 export function isTicketImage(file: File): boolean {
     return file.type.startsWith("image/") || isHeic(file);
 }
 
 /**
  * Decode a HEIC into a JPEG blob with libheif compiled to wasm. Loaded on
- * first use, like the recognizer: it is a megabyte nobody with a JPG pays
- * for. Safari can decode HEIC natively, but converting everywhere keeps one
- * path rather than two that could read the same photo differently.
+ * first use: it is a megabyte nobody with a JPG pays for. Safari can decode
+ * HEIC natively, but converting everywhere keeps one path rather than two
+ * that could read the same photo differently.
  */
 async function decodeHeic(file: File): Promise<Blob> {
     const { default: heic2any } = await import("heic2any");
@@ -141,16 +120,16 @@ async function decodeHeic(file: File): Promise<Blob> {
 }
 
 /**
- * The photo as Tesseract reads best: scaled to a sane size and flattened to
- * grey. Done on a canvas so the bytes sent to the worker are already the
- * bytes it would have derived, and so an image format the browser decodes
- * works without the worker having to know it.
+ * The photo as the recognizer wants it: the way up the camera meant (a phone
+ * stores the sensor's pixels and an EXIF note saying which way is up), no
+ * longer than `MAX_SIDE`, as a JPEG. Done on a canvas so a format only the
+ * browser decodes works, and so the upload is small.
  */
-async function prepare(file: File): Promise<Blob> {
+export async function prepareTicket(file: File): Promise<Blob> {
     const source: Blob = isHeic(file) ? await decodeHeic(file) : file;
     let bitmap: ImageBitmap;
     try {
-        bitmap = await createImageBitmap(source);
+        bitmap = await createImageBitmap(source, { imageOrientation: "from-image" });
     } catch (e) {
         throw new TicketError("unreadable", (e as Error).message);
     }
@@ -160,141 +139,88 @@ async function prepare(file: File): Promise<Blob> {
     canvas.height = Math.round(bitmap.height * scale);
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new TicketError("unreadable", "canvas unavailable");
-    ctx.filter = "grayscale(1)";
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
     return new Promise((resolve, reject) =>
         canvas.toBlob(
             (blob) => (blob ? resolve(blob) : reject(new TicketError("unreadable", "toBlob"))),
-            "image/png"
+            "image/jpeg",
+            0.9
         )
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Send                                                                        */
+/* -------------------------------------------------------------------------- */
+
+function errorFor(status: number, body: string): TicketError {
+    let detail = `HTTP ${status}`;
+    try {
+        const parsed = JSON.parse(body) as { error?: string };
+        if (typeof parsed.error === "string") detail = parsed.error;
+    } catch {
+        // The status is the message.
+    }
+    if (status === 409) return new TicketError("duplicate", detail);
+    if (status === 415) return new TicketError("unreadable", detail);
+    if (status === 422) return new TicketError("no_text", detail);
+    if (status === 503) return new TicketError("no_ocr", detail);
+    return new TicketError("rejected", detail);
+}
+
 /**
- * The lines Tesseract read, top to bottom, as the backend's reader wants
- * them: one printed row per string, nothing empty. A thermal print puts the
- * product and its price on the same row, and Tesseract keeps them on the
- * same line, which is the whole reason the reader can pair them.
+ * Posts the prepared photo and reports the bytes as they go. XHR rather than
+ * fetch for the one thing fetch cannot do: upload progress, which is the
+ * only honest fraction this trip has — the read on the other side takes a
+ * couple of seconds and reports nothing.
  */
-export async function recognizeTicket(
-    file: File,
+export function sendTicket(
+    image: Blob,
+    filename: string,
+    capturedAt: string,
     onProgress?: (fraction: number) => void
-): Promise<string[]> {
-    const image = await prepare(file);
-    // Loaded on first use: the worker, its wasm core and the Spanish model
-    // are several megabytes nobody who never uploads a ticket should pay for.
-    const { createWorker } = await import("tesseract.js");
-    const worker = await createWorker("spa", 1, {
-        logger: (m) => {
-            if (m.status === "recognizing text" && onProgress) onProgress(m.progress);
-        },
-    });
-    try {
-        const { data } = await worker.recognize(image);
-        const lines = data.text
-            .split(/\r?\n/)
-            .map((line) => line.replace(/\s+/g, " ").trim())
-            .filter((line) => line.length > 0);
-        if (lines.length === 0) {
-            throw new TicketError("no_text", "The recognizer returned no lines");
+): Promise<ReceiptUploadResponse> {
+    return new Promise((resolve, reject) => {
+        const form = new FormData();
+        form.append("file", image, filename);
+        form.append("captured_at", capturedAt);
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API_URL}/api/receipts/upload`);
+        if (onProgress) {
+            xhr.upload.addEventListener("progress", (e) => {
+                if (e.lengthComputable) onProgress(e.loaded / e.total);
+            });
+            xhr.upload.addEventListener("loadend", () => onProgress(1));
         }
-        return lines;
-    } finally {
-        await worker.terminate();
-    }
-}
-
-/* -------------------------------------------------------------------------- */
-/* seal + send                                                                 */
-/* -------------------------------------------------------------------------- */
-
-export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
-    return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-let cachedKey: ServerKey | null = null;
-
-async function serverKey(): Promise<ServerKey> {
-    if (cachedKey) return cachedKey;
-    const key = await request<ServerKey>("/api/ingest/key");
-    if (key.algorithm !== ALGORITHM) {
-        throw new TicketError("rejected", `Algoritmo no soportado: ${key.algorithm}`);
-    }
-    if (naclUtil.decodeBase64(key.public_key).length !== nacl.box.publicKeyLength) {
-        throw new TicketError("rejected", "La llave pública del servidor no mide 32 bytes");
-    }
-    cachedKey = key;
-    return key;
-}
-
-/** Seals a payload for the server's key. Pure, so it can be tested offline. */
-export function sealPayload(payload: ReceiptPayload, key: ServerKey) {
-    const message = naclUtil.decodeUTF8(JSON.stringify(payload));
-    const ephemeral = nacl.box.keyPair();
-    const nonce = nacl.randomBytes(nacl.box.nonceLength);
-    const box = nacl.box(message, nonce, naclUtil.decodeBase64(key.public_key), ephemeral.secretKey);
-    ephemeral.secretKey.fill(0);
-    message.fill(0);
-    return {
-        v: ENVELOPE_VERSION,
-        key_id: key.key_id,
-        epk: naclUtil.encodeBase64(ephemeral.publicKey),
-        nonce: naclUtil.encodeBase64(nonce),
-        box: naclUtil.encodeBase64(box),
-    };
-}
-
-/**
- * Seals the ticket's text and posts it. The image is not a parameter: this
- * function has no way to send one, which is the point.
- */
-export async function sendReceipt(payload: ReceiptPayload): Promise<ReceiptUploadResponse> {
-    const envelope = sealPayload(payload, await serverKey());
-    let res: Response;
-    try {
-        res = await fetch(`${API_URL}/api/ingest/receipt`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(envelope),
+        xhr.addEventListener("load", () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    resolve(JSON.parse(xhr.responseText) as ReceiptUploadResponse);
+                } catch {
+                    reject(new TicketError("rejected", "El servidor respondió algo ilegible."));
+                }
+                return;
+            }
+            reject(errorFor(xhr.status, xhr.responseText));
         });
-    } catch (e) {
-        throw new TicketError("rejected", `No se pudo enviar: ${(e as Error).message}`);
-    }
-    if (res.status === 409) {
-        throw new TicketError("duplicate", "Esta foto ya fue procesada");
-    }
-    if (!res.ok) {
-        let detail = `HTTP ${res.status}`;
-        try {
-            const body = (await res.json()) as { error?: string };
-            if (typeof body.error === "string") detail = body.error;
-        } catch {
-            // The status is the message.
-        }
-        throw new TicketError("rejected", detail);
-    }
-    return (await res.json()) as ReceiptUploadResponse;
+        xhr.addEventListener("error", () =>
+            reject(new TicketError("rejected", `No se pudo contactar al backend en ${API_URL}.`))
+        );
+        xhr.send(form);
+    });
 }
 
-/** The whole trip for one photo: read it here, seal the text, send it. */
+/** The whole trip for one photo: make it ready here, send it, get the basket. */
 export async function uploadTicket(
     file: File,
     onProgress?: (fraction: number) => void
 ): Promise<ReceiptUploadResponse> {
-    const [contentSha256, lines] = await Promise.all([
-        file.arrayBuffer().then(sha256Hex),
-        recognizeTicket(file, onProgress),
-    ]);
-    return sendReceipt({
-        v: 1,
-        kind: "receipt",
-        filename: file.name,
-        content_sha256: contentSha256,
-        lines,
-        captured_at: new Date(file.lastModified || Date.now()).toISOString(),
-        extractor: RECEIPT_EXTRACTOR,
-        transaction_id: null,
-    });
+    const image = await prepareTicket(file);
+    const filename = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    // The best guess at when the photo was taken: the file's own timestamp.
+    // Off when the photo was copied from a phone, which is why the backend
+    // treats it as a fallback and the print's date wins whenever it reads.
+    const capturedAt = new Date(file.lastModified || Date.now()).toISOString();
+    return sendTicket(image, filename, capturedAt, onProgress);
 }

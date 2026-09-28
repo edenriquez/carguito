@@ -10,8 +10,10 @@ nothing above this line knows which is wired.
   two-column thermal print far better than a regex can, and falls back to the
   heuristic whenever its answer does not survive checking.
 
-Both are handed the *lines*, never an image: the photo stays on the phone
-(docs/custody-plan.md G1/G2), and this port could not accept one if it wanted.
+Both are handed the *lines*, never an image. From the phone the photo stays
+on the phone (docs/custody-plan.md G1/G2); from the web it is uploaded, read
+by :class:`ReceiptImageOcr` below in memory, and discarded — the same honesty
+the web's statement upload already has. Either way, what is stored is text.
 """
 
 from __future__ import annotations
@@ -20,6 +22,32 @@ from collections.abc import Sequence
 from typing import Protocol, runtime_checkable
 
 from ...dtos.receipts import ParsedReceipt
+
+
+@runtime_checkable
+class ReceiptImageOcr(Protocol):
+    """Turns a photo of a ticket into the printed rows, top to bottom.
+
+    The web's way in. The phone reads its own photos; a browser has no
+    recognizer worth the name (Tesseract on thermal print reads a third of
+    the prices), so the web sends the image and the server reads it here,
+    in memory, and keeps nothing but the rows.
+    """
+
+    #: Name of the engine, stored on the receipt as its ``extractor``.
+    label: str
+
+    def read(self, image: bytes) -> list[str]:
+        """Rows of text in reading order; empty when nothing was found.
+
+        Raises :class:`UnreadableImageError` only when the bytes are not an
+        image at all — a photo of a table with no ticket on it returns ``[]``.
+        """
+        ...
+
+
+class UnreadableImageError(Exception):
+    """The upload could not be decoded as an image."""
 
 
 @runtime_checkable

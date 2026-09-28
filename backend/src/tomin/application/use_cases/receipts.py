@@ -14,6 +14,7 @@ user. None of them end with a guess.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -23,7 +24,12 @@ from ...domain.entities import Receipt, ReceiptItem, Transaction
 from ...domain.services.products import parse_size, product_key
 from ...domain.services.receipt_matching import WINDOW_DAYS, MatchCandidate, match_receipt
 from ..dtos.receipts import ParsedReceiptItem
-from ..ports.outbound import ReceiptReader, ReceiptRepository, TransactionRepository
+from ..ports.outbound import (
+    ReceiptImageOcr,
+    ReceiptReader,
+    ReceiptRepository,
+    TransactionRepository,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +58,14 @@ class TransactionAlreadyHasReceiptError(Exception):
 
 class UnknownTransactionError(Exception):
     """No such movement, or it belongs to another user."""
+
+
+class ReceiptOcrUnavailableError(Exception):
+    """No OCR engine is installed on this server."""
+
+
+class NoTextInImageError(Exception):
+    """The image decoded, but no text was found on it."""
 
 
 @dataclass(frozen=True)
@@ -108,6 +122,7 @@ class IngestReceiptUseCase:
             user_id=user_id,
             store=parsed.store,
             purchased_at=parsed.purchased_at,
+            purchased_time=parsed.purchased_time,
             total=parsed.total,
             currency=parsed.currency,
             content_sha256=content_sha256,
@@ -204,6 +219,48 @@ class IngestReceiptUseCase:
             raise UnknownTransactionError(str(transaction_id))
         if self._receipts.get_for_transaction(user_id, transaction_id) is not None:
             raise TransactionAlreadyHasReceiptError(str(transaction_id))
+
+
+class IngestReceiptImageUseCase:
+    """A photo in, a stored basket out — the web's way to add a ticket.
+
+    The image is read here and never stored: the OCR sees it in memory, the
+    rows go through the same :class:`IngestReceiptUseCase` the phone's text
+    does, and the bytes are dropped with the request. ``content_sha256`` is
+    computed over the upload so re-sending the same photo is the same event,
+    exactly as it is from the phone.
+    """
+
+    def __init__(self, *, ocr: ReceiptImageOcr | None, ingest: IngestReceiptUseCase) -> None:
+        self._ocr = ocr
+        self._ingest = ingest
+
+    @property
+    def available(self) -> bool:
+        return self._ocr is not None
+
+    def execute(
+        self,
+        *,
+        user_id: UUID,
+        image: bytes,
+        captured_at: datetime | None = None,
+        transaction_id: UUID | None = None,
+    ) -> IngestReceiptResult:
+        if self._ocr is None:
+            raise ReceiptOcrUnavailableError()
+        content_sha256 = hashlib.sha256(image).hexdigest()
+        lines = self._ocr.read(image)
+        if not lines:
+            raise NoTextInImageError()
+        return self._ingest.execute(
+            user_id=user_id,
+            lines=lines,
+            content_sha256=content_sha256,
+            extractor=self._ocr.label,
+            captured_at=captured_at,
+            transaction_id=transaction_id,
+        )
 
 
 class ManageReceiptsUseCase:

@@ -18,17 +18,18 @@ const ACCEPT = "image/*,.heic,.heif";
 
 /** What one photo is doing right now.
  *
- *  `reading` is the OCR, in this browser, and it has a real fraction. `sending`
- *  is the sealed text on the wire plus the backend structuring it, which is
- *  quick and reports nothing. */
-type Phase = "queued" | "reading" | "sending" | "done" | "error";
+ *  `preparing` is the browser decoding and shrinking the photo; `sending` is
+ *  the bytes on the wire and has a real fraction; `reading` is the backend
+ *  recognizing and structuring the ticket, which takes a couple of seconds
+ *  and reports nothing, so the only honest bar is an indeterminate one. */
+type Phase = "queued" | "preparing" | "sending" | "reading" | "done" | "error";
 
 type Item = {
     id: string;
     name: string;
     file: File;
     phase: Phase;
-    /** 0–1, the recognizer's own progress. Only meaningful while `reading`. */
+    /** 0–1, bytes actually delivered. Only meaningful while `sending`. */
     read: number;
     result?: ReceiptUploadResponse;
     error?: string;
@@ -41,11 +42,10 @@ const nextId = () => `t${++seq}`;
  * Upload tickets from the browser: a picker, a queue, and the rows.
  *
  * Same shape as the statement upload (`useStatementUpload`), for the same
- * reasons — many files one at a time, every outcome on the file's own row —
- * but the slow half is different. A statement's slow half is the backend
- * parsing; a ticket's is the OCR, and it runs *here*, in a worker in this
- * tab, which is why the queue is strictly sequential: two recognizers at once
- * would fight for the same cores and finish no sooner.
+ * reasons — many files one at a time, every outcome on the file's own row.
+ * The photo is decoded and shrunk here, then read on the backend; the queue
+ * is sequential so the rows stay legible and the backend reads one ticket at
+ * a time.
  */
 export function useTicketUpload(onAdded?: (result: ReceiptUploadResponse) => void) {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -65,10 +65,15 @@ export function useTicketUpload(onAdded?: (result: ReceiptUploadResponse) => voi
         if (!next) return;
         running.current = true;
         void (async () => {
-            patch(next.id, { phase: "reading", read: 0, error: undefined });
+            patch(next.id, { phase: "preparing", read: 0, error: undefined });
             try {
                 const result = await uploadTicket(next.file, (fraction) =>
-                    patch(next.id, fraction >= 1 ? { phase: "sending", read: 1 } : { read: fraction })
+                    // Once the bytes are gone the bar stops being the truth:
+                    // hand over to `reading`, which claims nothing.
+                    patch(
+                        next.id,
+                        fraction >= 1 ? { phase: "reading", read: 1 } : { phase: "sending", read: fraction }
+                    )
                 );
                 patch(next.id, { phase: "done", read: 1, result });
                 track("precios.ticket_upload", {
@@ -240,20 +245,24 @@ export function TicketQueue({
                             </button>
                         )}
                     </div>
-                    {(item.phase === "reading" || item.phase === "sending") && (
+                    {(item.phase === "preparing" ||
+                        item.phase === "sending" ||
+                        item.phase === "reading") && (
                         <div
                             role="progressbar"
                             aria-valuemin={0}
                             aria-valuemax={1}
-                            aria-valuenow={item.phase === "reading" ? item.read : undefined}
+                            aria-valuenow={item.phase === "sending" ? item.read : undefined}
                             className="mt-2 h-1 overflow-hidden rounded-full bg-fog"
                         >
                             <div
                                 className={cn(
                                     "h-full rounded-full bg-soot transition-[width] duration-200",
-                                    item.phase === "sending" && "animate-pulse"
+                                    item.phase !== "sending" && "animate-pulse"
                                 )}
-                                style={{ width: `${Math.round((item.phase === "reading" ? item.read : 1) * 100)}%` }}
+                                style={{
+                                    width: `${Math.round((item.phase === "sending" ? item.read : 1) * 100)}%`,
+                                }}
                             />
                         </div>
                     )}
@@ -267,10 +276,12 @@ function label(item: Item): string {
     switch (item.phase) {
         case "queued":
             return "En espera";
-        case "reading":
-            return `Leyendo en tu navegador · ${Math.round(item.read * 100)}%`;
+        case "preparing":
+            return "Preparando la foto…";
         case "sending":
-            return "Enviando el texto…";
+            return `Subiendo · ${Math.round(item.read * 100)}%`;
+        case "reading":
+            return "Leyendo el ticket…";
         case "error":
             return item.error ?? "No se pudo";
         case "done": {

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID, uuid4
@@ -119,6 +119,8 @@ class Receipt:
     #: that belongs to the matcher, not to the record.
     store: str | None = None
     purchased_at: date | None = None
+    #: The time of day printed with the date, when the ticket has one.
+    purchased_time: time | None = None
     total: Decimal | None = None
     currency: str = "MXN"
     transaction_id: UUID | None = None

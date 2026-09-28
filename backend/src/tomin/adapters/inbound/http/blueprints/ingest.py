@@ -129,9 +129,9 @@ def ingest_receipt():
     """Accept the text a device read off a photo of a grocery ticket.
 
     Same envelope, same custody, one step later in a different pipeline: the
-    photo stays on the device that took or holds it -- the phone's recognizer
-    or a Tesseract worker in the browser tab (docs/custody-plan.md G1/G2) --
-    and only the OCR lines travel, sealed. What comes back is the structured basket plus, when
+    photo stays on the phone (docs/custody-plan.md G1/G2) and only the OCR
+    lines travel, sealed. The web has its own door, ``POST
+    /api/receipts/upload``, where the photo does travel and is read here. What comes back is the structured basket plus, when
     the ticket could not attach itself to a movement, the movements it might
     belong to — the phone asks, and a wrong attachment is never guessed into
     place.
@@ -185,27 +185,31 @@ def ingest_receipt():
     except TransactionAlreadyHasReceiptError:
         return jsonify(error="Ese movimiento ya tiene un ticket"), 409
 
+    return jsonify(receipt_result_json(result, container.settings.frontend_url)), 201
+
+
+def receipt_result_json(result, frontend_url: str) -> dict:
+    """The answer to a ticket that just came in, from either door.
+
+    Present only when the receipt could not attach itself: ``suggestions``,
+    each carrying the movement *and* the reason it scored, because "same
+    amount, same day" is what makes the choice answerable.
+    """
     receipt = result.receipt
-    return (
-        jsonify(
-            receipt_id=str(receipt.id),
-            receipt=receipt_json(receipt),
-            attached=receipt.transaction_id is not None,
-            # Present only when the receipt could not attach itself. Each entry
-            # carries the movement *and* the reason it scored, because "same
-            # amount, same day" is what makes the choice answerable.
-            suggestions=[
-                {
-                    "transaction": transaction_json(s.transaction),
-                    "score": s.candidate.score,
-                    "reason": s.candidate.reason,
-                }
-                for s in result.suggestions
-            ],
-            prices_url=_prices_url(container.settings.frontend_url),
-        ),
-        201,
-    )
+    return {
+        "receipt_id": str(receipt.id),
+        "receipt": receipt_json(receipt),
+        "attached": receipt.transaction_id is not None,
+        "suggestions": [
+            {
+                "transaction": transaction_json(s.transaction),
+                "score": s.candidate.score,
+                "reason": s.candidate.reason,
+            }
+            for s in result.suggestions
+        ],
+        "prices_url": _prices_url(frontend_url),
+    }
 
 
 def _envelope_error(envelope) -> str | None:

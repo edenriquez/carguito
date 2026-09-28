@@ -313,6 +313,8 @@ def receipt_json(r: Receipt) -> dict:
         "match_source": r.match_source,
         "store": r.store,
         "purchased_at": _iso(r.purchased_at),
+        # "14:32", as printed. Display only; nothing is computed from it.
+        "purchased_time": r.purchased_time.strftime("%H:%M") if r.purchased_time else None,
         "total": _money(r.total),
         "currency": r.currency,
         # Provenance: which OCR engine read the photo and which reader

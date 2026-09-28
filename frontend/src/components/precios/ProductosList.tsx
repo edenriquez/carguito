@@ -34,12 +34,10 @@ import { PriceTracker, pointDateLabel } from "./PriceTracker";
  * is the same data as a table for anyone the line does not serve.
  */
 export function ProductosList({
-    query,
     terms,
     dataVersion,
     onVerTicket,
 }: {
-    query: string;
     terms: Record<string, ReferenceTerm>;
     dataVersion: number;
     onVerTicket: (receiptId: string) => void;
@@ -54,7 +52,7 @@ export function ProductosList({
     useEffect(() => {
         let stale = false;
         pricesApi
-            .book(query.trim() || undefined)
+            .book()
             .then((res) => {
                 if (stale) return;
                 setBook(res.items);
@@ -64,7 +62,7 @@ export function ProductosList({
         return () => {
             stale = true;
         };
-    }, [query, dataVersion]);
+    }, [dataVersion]);
 
     useEffect(() => {
         if (!openKey || detail[openKey]) return;
@@ -121,7 +119,7 @@ export function ProductosList({
                 </div>
             ) : book.length === 0 ? (
                 <p className="px-5 py-6 text-body text-graphite sm:px-6">
-                    {query.trim() ? "Ningún producto coincide." : "Ningún producto leído todavía."}
+                    Ningún producto leído todavía.
                 </p>
             ) : (
                 <ul className="divide-y divide-mist">

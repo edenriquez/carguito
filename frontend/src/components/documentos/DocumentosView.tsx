@@ -457,8 +457,8 @@ function TransfersNote({ banks }: { banks: number }) {
 
 /**
  * Where tickets come from, said in the one place that lists what Tomin has
- * read: the Precios face, from a photo read in the browser or in the phone
- * app. Either way the photo stays where it was taken and only the text travels.
+ * read: the Precios face, from a photo the phone reads itself or one the
+ * browser uploads for the backend to read. Either way only text is stored.
  */
 function TicketsNote() {
     const { dataVersion } = useAppData();
@@ -470,8 +470,8 @@ function TicketsNote() {
             {count === 0 ? (
                 <>
                     Los tickets del súper se suben en Precios, desde aquí o desde la app
-                    en el celular (la foto se queda donde la tomaste; solo viaja el
-                    texto). Todavía no hay ninguno.
+                    en el celular. Desde el celular la foto no sale del teléfono; desde
+                    aquí se sube, se lee y se descarta. Todavía no hay ninguno.
                     <Link
                         href="/"
                         onClick={() => track("nav.view", { to: "/precios", source: "documentos" })}

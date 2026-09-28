@@ -81,6 +81,8 @@ export type Receipt = {
     match_source: string;
     store: string | null;
     purchased_at: string | null;
+    /** "14:32", the clock time printed next to the date, or null. */
+    purchased_time: string | null;
     total: number | null;
     currency: string;
     /** Which OCR engine read the photo, and which reader structured the lines. */

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, time
 from decimal import Decimal
 
 
@@ -33,6 +33,9 @@ class ParsedReceipt:
 
     store: str | None = None
     purchased_at: date | None = None
+    #: The clock time printed next to the date, when there is one. Kept apart
+    #: from the date because a ticket can carry one without the other.
+    purchased_time: time | None = None
     total: Decimal | None = None
     currency: str = "MXN"
     items: list[ParsedReceiptItem] = field(default_factory=list)
