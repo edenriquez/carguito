@@ -17,10 +17,10 @@ import { useChartTip } from "./useChartTip";
  * on first sight — see `.lx-*` in globals.css. The parent card passes `play`.
  */
 
-const MONTH_SHORT = new Intl.DateTimeFormat("es-MX", { month: "short" });
-const monthShort = (key: MonthKey) => MONTH_SHORT.format(monthKeyToDate(key)).replace(".", "");
-const k = (n: number) => `$${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-const TEXT = { fontSize: 11, fill: colors.graphite } as const;
+export const MONTH_SHORT = new Intl.DateTimeFormat("es-MX", { month: "short" });
+export const monthShort = (key: MonthKey) => MONTH_SHORT.format(monthKeyToDate(key)).replace(".", "");
+export const k = (n: number) => `$${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+export const TEXT = { fontSize: 11, fill: colors.graphite } as const;
 
 /* ------------------------------------------------------------------ 1 · Decil */
 
@@ -204,72 +204,107 @@ const TIER_FILL: Record<Tier, string> = {
 export function NecesidadChart({ tiers }: { tiers: TierSlice[] }) {
     const { box, bind, node } = useChartTip();
     const [open, setOpen] = useState<Tier | null>(null);
+    const toggle = (tier: Tier) => setOpen((cur) => (cur === tier ? null : tier));
     let x = 0;
-    const shown = tiers.find((t) => t.tier === open);
+    // The bar's segments, laid out once so the selection outline can be drawn
+    // over them as its own element.
+    const segments = TIER_ORDER.flatMap((tier) => {
+        const t = tiers.find((s) => s.tier === tier)!;
+        const w = t.share * 600;
+        const at = x;
+        x += w;
+        return w > 0 ? [{ tier, t, at, w }] : [];
+    });
+    const picked = segments.find((s) => s.tier === open);
     return (
         <div ref={box} className="relative">
-            <svg viewBox="0 0 600 22" className="w-full" role="img" aria-label="Tu gasto por nivel de necesidad">
+            {/* Two units of room above and below the bar: the selection ring
+                is drawn *outside* the segment, and a viewBox cut flush to the
+                bar clipped its top and bottom edges away. */}
+            <svg viewBox="-2 -2 604 26" className="w-full overflow-visible" role="img" aria-label="Tu gasto por nivel de necesidad">
                 <defs>
                     <pattern id="lx-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                         <rect width="6" height="6" fill={colors.fog} />
                         <line x1="0" y1="0" x2="0" y2="6" stroke={colors.muted} strokeWidth="2" />
                     </pattern>
                 </defs>
-                {TIER_ORDER.map((tier, i) => {
-                    const t = tiers.find((s) => s.tier === tier)!;
-                    const w = t.share * 600;
-                    const at = x;
-                    x += w;
-                    if (w <= 0) return null;
-                    return (
-                        <rect
-                            key={tier}
-                            className="lx-growx cursor-pointer"
-                            style={{ transitionDelay: `${i * 160}ms` }}
-                            x={at}
-                            y={0}
-                            width={Math.max(1, w - 2)}
-                            height={22}
-                            rx={2}
-                            fill={TIER_FILL[tier]}
-                            stroke={open === tier ? colors.signal : "none"}
-                            strokeWidth={2}
-                            onClick={() => setOpen(open === tier ? null : tier)}
-                            {...bind(`${TIER_LABELS[tier]} · ${mxn(t.amount)} · ${Math.round(t.share * 100)}%`)}
-                        />
-                    );
-                })}
+                {segments.map(({ tier, t, at, w }, i) => (
+                    <rect
+                        key={tier}
+                        className="lx-growx cursor-pointer"
+                        style={{ transitionDelay: `${i * 160}ms` }}
+                        x={at}
+                        y={0}
+                        width={Math.max(1, w - 2)}
+                        height={22}
+                        rx={2}
+                        fill={TIER_FILL[tier]}
+                        // The others step back instead of the picked one
+                        // growing a border: the segment keeps its size, and
+                        // the eye lands on the one still at full strength.
+                        opacity={open && open !== tier ? 0.35 : 1}
+                        onClick={() => toggle(tier)}
+                        {...bind(`${TIER_LABELS[tier]} · ${mxn(t.amount)} · ${Math.round(t.share * 100)}%`)}
+                    />
+                ))}
+                {picked && (
+                    <rect
+                        aria-hidden
+                        pointerEvents="none"
+                        x={picked.at - 1}
+                        y={-1}
+                        width={Math.max(1, picked.w - 2) + 2}
+                        height={24}
+                        rx={3}
+                        fill="none"
+                        stroke={colors.signal}
+                        strokeWidth={2}
+                    />
+                )}
             </svg>
             <ul className="mt-4 divide-y divide-mist">
                 {TIER_ORDER.map((tier) => {
                     const t = tiers.find((s) => s.tier === tier)!;
+                    const on = open === tier;
                     return (
                         <li key={tier}>
                             <button
                                 type="button"
-                                onClick={() => setOpen(open === tier ? null : tier)}
-                                className="flex w-full items-center gap-2.5 py-2 text-left text-body-sm hover:text-ink"
-                                aria-expanded={open === tier}
+                                onClick={() => toggle(tier)}
+                                className={cn(
+                                    "-mx-2 flex w-[calc(100%+1rem)] items-center gap-2.5 rounded-input px-2 py-2 text-left text-body-sm transition-colors duration-100",
+                                    on ? "bg-fog" : "hover:bg-fog/60"
+                                )}
+                                aria-expanded={on}
                             >
-                                <svg width="10" height="10" aria-hidden><rect width="10" height="10" rx="2" fill={tier === "sin" ? colors.mist : TIER_FILL[tier]} /></svg>
-                                <span className={cn("flex-1", tier === "sin" ? "text-graphite" : "text-ink")}>{TIER_LABELS[tier]}</span>
+                                <svg width="10" height="10" aria-hidden className="shrink-0"><rect width="10" height="10" rx="2" fill={tier === "sin" ? colors.mist : TIER_FILL[tier]} /></svg>
+                                <span className={cn("flex-1", tier === "sin" ? "text-graphite" : "text-ink", on && "font-medium")}>{TIER_LABELS[tier]}</span>
                                 <span className="tabular text-graphite">{Math.round(t.share * 100)}%</span>
                                 <span className="w-20 text-right tabular text-ink">{mxn(t.amount)}</span>
                             </button>
+                            {/* The categories behind a level, under its own row:
+                                the panel used to open below the whole list,
+                                a pill-rounded box far from the row it explained. */}
+                            {on && (
+                                <div className="mb-2 mt-1 rounded-input border border-mist bg-paper px-3 py-1.5">
+                                    {t.leaves.length === 0 ? (
+                                        <p className="py-1 text-label text-graphite">Sin cargos en este nivel.</p>
+                                    ) : (
+                                        t.leaves.slice(0, 8).map((l: Leaf) => (
+                                            <div key={l.name} className="flex items-baseline justify-between gap-3 border-b border-mist py-1.5 text-label last:border-0">
+                                                <span className="min-w-0 truncate text-ink">
+                                                    {l.name} <span className="text-graphite">· {l.count} {l.count === 1 ? "cargo" : "cargos"}</span>
+                                                </span>
+                                                <span className="tabular shrink-0 text-ink">{mxn(l.amount)}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
                         </li>
                     );
                 })}
             </ul>
-            {shown && shown.leaves.length > 0 && (
-                <div className="mt-2 rounded-control bg-fog px-3 py-2">
-                    {shown.leaves.slice(0, 8).map((l: Leaf) => (
-                        <div key={l.name} className="flex justify-between py-1 text-label">
-                            <span className="text-ink">{l.name} <span className="text-graphite">· {l.count} {l.count === 1 ? "cargo" : "cargos"}</span></span>
-                            <span className="tabular text-ink">{mxn(l.amount)}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
             {node}
         </div>
     );

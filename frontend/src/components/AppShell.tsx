@@ -42,19 +42,26 @@ export function AppShell({
 
     return (
         <main className="mx-auto min-h-dvh w-full max-w-page px-5 pb-16 sm:px-8">
-            <header className="flex flex-wrap items-center gap-x-4 gap-y-3 py-6 sm:py-8">
+            {/* Three columns from `sm` up, the outer two equal: the search sits
+                on the page's true centre whatever the wordmark and the actions
+                weigh. On a phone it drops to a row of its own under them. */}
+            <header className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 py-6 sm:grid-cols-[1fr_auto_1fr] sm:py-8">
                 <Link
                     href="/"
                     aria-label="Tomin, inicio"
-                    className="flex items-center gap-2 text-ink"
+                    className="flex items-center gap-2 justify-self-start text-ink"
                 >
                     <Flame size={16} className="text-signal" aria-hidden />
                     <span className="text-body font-medium">Tomin</span>
                 </Link>
 
-                {instrument}
+                {instrument && (
+                    <div className="order-last col-span-2 flex justify-center sm:order-none sm:col-span-1">
+                        {instrument}
+                    </div>
+                )}
 
-                <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1.5 justify-self-end sm:gap-2">
                     <PagosBell
                         dataVersion={dataVersion}
                         active={pagos.open}

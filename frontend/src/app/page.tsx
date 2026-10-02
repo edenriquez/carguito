@@ -146,10 +146,12 @@ function Root() {
 function RootSkeleton() {
     return (
         <main className="mx-auto min-h-dvh w-full max-w-page px-5 pb-16 sm:px-8" aria-busy>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 py-6 sm:py-8">
+            <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 py-6 sm:grid-cols-[1fr_auto_1fr] sm:py-8">
                 <Skeleton className="h-6 w-20 rounded-control" />
-                <Skeleton className="h-10 w-48 rounded-control" />
-                <div className="ml-auto flex items-center gap-2">
+                <div className="order-last col-span-2 flex justify-center sm:order-none sm:col-span-1">
+                    <Skeleton className="h-11 w-full rounded-control sm:w-[24rem]" />
+                </div>
+                <div className="flex items-center gap-2 justify-self-end">
                     <Skeleton className="h-9 w-9 rounded-control sm:w-32" />
                     <Skeleton className="h-9 w-20 rounded-control sm:w-40" />
                 </div>
