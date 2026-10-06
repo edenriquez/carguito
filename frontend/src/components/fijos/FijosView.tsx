@@ -20,7 +20,8 @@ import { parsePeriodKey } from "@/lib/metrics";
 import { track } from "@/lib/telemetry";
 import { useAppData } from "@/components/AppChrome";
 import { ChartCard } from "@/components/ChartCard";
-import { LoadTimelineChart } from "@/components/recurrentes/LoadTimelineChart";
+import { LoadTimelineChart, timelineHeadline } from "@/components/recurrentes/LoadTimelineChart";
+import { useChartsV2 } from "@/lib/chartsV2";
 import {
     buildTimeline,
     isStale,
@@ -245,6 +246,7 @@ export function FijosView({ onGoToIngresos }: { onGoToIngresos?: () => void } = 
         );
     }, [noisePool, activeDetected, looseRest, timeline.months, timeline.firstFutureIndex]);
 
+    const v2 = useChartsV2();
     const fijosNeed = timeline.totals.projected;
     const restNeed = rest && rest.rate > 0 ? rest.rate * horizon : 0;
     const need = fijosNeed + restNeed;
@@ -277,7 +279,10 @@ export function FijosView({ onGoToIngresos }: { onGoToIngresos?: () => void } = 
                         onGoToIngresos={onGoToIngresos}
                     />
 
-                    <ChartCard title="Mes a mes, y lo que viene">
+                    <ChartCard
+                        title={(v2 && !loading && timelineHeadline(timeline)) || "Mes a mes, y lo que viene"}
+                        subtitle={v2 && !loading && timelineHeadline(timeline) ? "Mes a mes, y lo que viene" : undefined}
+                    >
                         {loading ? (
                             <Skeleton className="h-[300px]" />
                         ) : (

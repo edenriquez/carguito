@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { colors } from "@/design/tokens";
+import { useState, type KeyboardEvent } from "react";
+import { chart, colors } from "@/design/tokens";
 import { cn } from "@/lib/cn";
 import { mxn } from "@/lib/format";
 import { DECILE_LABELS, ENIGH_MONTHLY, ENIGH_YEAR, decileIndex } from "@/lib/enigh";
@@ -20,7 +20,14 @@ import { useChartTip } from "./useChartTip";
 export const MONTH_SHORT = new Intl.DateTimeFormat("es-MX", { month: "short" });
 export const monthShort = (key: MonthKey) => MONTH_SHORT.format(monthKeyToDate(key)).replace(".", "");
 export const k = (n: number) => `$${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
-export const TEXT = { fontSize: 11, fill: colors.graphite } as const;
+// `--lx-fs` is set by useChartTip in «Gráficas v2» only, so v1 renders 11 as before.
+export const TEXT = { fontSize: "calc(11px * var(--lx-fs, 1))", fill: colors.graphite } as const;
+
+/** The latest month when the record stops before its last day: drawn apart and labelled «al {day}» in v2. */
+export type PartialMonth = { key: MonthKey; day: number } | null;
+/** A month's axis label, with «al {day}» on the partial one. */
+export const monthAxis = (key: MonthKey, partial: PartialMonth) =>
+    partial?.key === key ? `${monthShort(key)} · al ${partial.day}` : monthShort(key);
 
 /* ------------------------------------------------------------------ 1 · Decil */
 
@@ -38,7 +45,7 @@ export function DecilChart({ spend, spendP, income, incomeP }: {
     income: number | null;
     incomeP: number | null;
 }) {
-    const { box, bind, node } = useChartTip();
+    const { box, bind, node, v2, accent } = useChartTip();
     const spendD = decileIndex(spendP);
     const incomeD = incomeP === null ? null : decileIndex(incomeP);
     const base = 168, top = 24;
@@ -63,8 +70,13 @@ export function DecilChart({ spend, spendP, income, incomeP }: {
                             <rect x={cx(i) - slot / 2} y={top} width={slot} height={base - top} fill="transparent" />
                             <rect className="lx-grow" style={{ transitionDelay: `${i * 60}ms` }} x={x} y={y(gasto)} width={bw} height={base - y(gasto)} rx={2} fill={on ? colors.signal : colors.muted} />
                             {incomeD === i && <circle cx={cx(i)} cy={base + 8} r={2.5} fill={colors.soot} />}
-                            <text x={cx(i)} y={base + 24} textAnchor="middle" style={{ ...TEXT, fill: on ? colors.edge : colors.graphite, fontWeight: on ? 500 : 400 }}>{label}</text>
-                            <text x={cx(i)} y={base + 39} textAnchor="middle" style={{ ...TEXT, fill: on ? colors.edge : colors.graphite }}>{k(gasto)}</text>
+                            {/* v2: the income decile is named on its column, not
+                                only a dot under the axis the eye skips. */}
+                            {v2 && incomeD === i && (
+                                <text x={cx(i)} y={y(gasto) - 6} textAnchor="middle" style={{ ...TEXT, fill: colors.ink, fontWeight: 500 }}>Ingresas aquí</text>
+                            )}
+                            <text x={cx(i)} y={base + 24} textAnchor="middle" style={{ ...TEXT, fill: on ? accent : colors.graphite, fontWeight: on ? 500 : 400 }}>{label}</text>
+                            <text x={cx(i)} y={base + 39} textAnchor="middle" style={{ ...TEXT, fill: on ? accent : colors.graphite }}>{k(gasto)}</text>
                             <text x={cx(i)} y={base + 54} textAnchor="middle" style={{ ...TEXT, fill: colors.ash }}>{k(ingreso)}</text>
                         </g>
                     );
@@ -78,7 +90,7 @@ export function DecilChart({ spend, spendP, income, incomeP }: {
                     the bars are short. */}
                 <g className="lx-fade" style={{ transitionDelay: "800ms" }}>
                     <line x1={left} x2={600} y1={ys} y2={ys} stroke={colors.signal} strokeDasharray="4 3" />
-                    <text x={left} y={ys - 6} style={{ ...TEXT, fill: colors.edge, fontWeight: 500 }}>
+                    <text x={left} y={ys - 6} style={{ ...TEXT, fill: accent, fontWeight: 500 }}>
                         Tú gastas {mxn(spend)}
                     </text>
                 </g>
@@ -96,11 +108,15 @@ export function DecilChart({ spend, spendP, income, incomeP }: {
 
 /* ---------------------------------------------------------------- 2 · Balance */
 
-export function BalanceChart({ months, income }: {
+export function BalanceChart({ months, income, partial = null }: {
     months: { key: MonthKey; amount: number; count: number }[];
     income: number;
+    partial?: PartialMonth;
 }) {
-    const { box, bind, node } = useChartTip();
+    const { box, bind, node, v2 } = useChartTip();
+    // v2: what spills over the income is a shortfall, not "you": it leaves
+    // Signal for Negative and carries its own figure.
+    const overFill = v2 ? colors.negative : colors.signal;
     const base = 170, top = 18;
     const max = Math.max(income, ...months.map((m) => m.amount)) * 1.12 || 1;
     const y = (v: number) => base - ((base - top) * v) / max;
@@ -111,22 +127,31 @@ export function BalanceChart({ months, income }: {
                 {months.map((m, i) => {
                     const x = 20 + i * (bw + gap);
                     const under = Math.min(m.amount, income), over = Math.max(0, m.amount - income);
+                    const part = v2 && partial?.key === m.key;
                     const tip = m.count === 0
                         ? `${monthShort(m.key)} · sin cargos en el registro`
                         : `${monthShort(m.key)} · gasto ${mxn(m.amount)} · ${over > 0 ? `${mxn(over)} arriba de tu ingreso` : `${mxn(income - m.amount)} por debajo`}`;
                     return (
                         <g key={m.key} {...bind(tip)}>
                             <rect x={x} y={top} width={bw} height={base - top} fill="transparent" />
-                            <rect className="lx-grow" style={{ transitionDelay: `${i * 80}ms` }} x={x} y={y(under)} width={bw} height={base - y(under)} rx={2} fill={colors.graphite} />
-                            {over > 0 && (
-                                <rect className="lx-fade" style={{ transitionDelay: `${800 + i * 90}ms` }} x={x} y={y(m.amount)} width={bw} height={y(under) - y(m.amount)} rx={2} fill={colors.signal} />
-                            )}
-                            {m.count > 0 && (
+                            <g opacity={part ? 0.45 : 1}>
+                                <rect className="lx-grow" style={{ transitionDelay: `${i * 80}ms` }} x={x} y={y(under)} width={bw} height={base - y(under)} rx={2} fill={colors.graphite} />
+                                {over > 0 && (
+                                    <rect className="lx-fade" style={{ transitionDelay: `${800 + i * 90}ms` }} x={x} y={y(m.amount)} width={bw} height={y(under) - y(m.amount)} rx={2} fill={overFill} />
+                                )}
+                            </g>
+                            {m.count > 0 && !v2 && (
                                 <text className="lx-fade" style={{ ...TEXT, fill: over > 0 ? colors.edge : colors.graphite, transitionDelay: `${600 + i * 80}ms` }} x={x + bw / 2} y={y(m.amount) - 6} textAnchor="middle">
                                     {Math.round(m.amount).toLocaleString("en-US")}
                                 </text>
                             )}
-                            <text x={x + bw / 2} y={base + 18} textAnchor="middle" style={TEXT}>{monthShort(m.key)}</text>
+                            {m.count > 0 && v2 && (
+                                <text className="lx-fade" style={{ ...TEXT, transitionDelay: `${600 + i * 80}ms` }} x={x + bw / 2} y={y(m.amount) - 6} textAnchor="middle">
+                                    {over > 0 && <tspan x={x + bw / 2} dy="-1.2em" fill={colors.negative} fontWeight={500}>+{k(over)}</tspan>}
+                                    <tspan x={x + bw / 2} dy={over > 0 ? "1.2em" : 0}>{k(m.amount)}</tspan>
+                                </text>
+                            )}
+                            <text x={x + bw / 2} y={base + 18} textAnchor="middle" style={TEXT}>{v2 ? monthAxis(m.key, partial) : monthShort(m.key)}</text>
                         </g>
                     );
                 })}
@@ -158,7 +183,7 @@ export function DiasChart({ byDay, shares, focus }: {
     shares: [number, number, number];
     focus: "early" | "late" | null;
 }) {
-    const { box, bind, node } = useChartTip();
+    const { box, bind, node, accent } = useChartTip();
     const max = Math.max(...byDay) || 1;
     const peak = byDay.indexOf(max);
     const base = 128, top = 18;
@@ -189,7 +214,7 @@ export function DiasChart({ byDay, shares, focus }: {
                             fill={on(i) ? colors.signal : colors.muted}
                         />
                         {i === peak && v > 0 && (
-                            <text className="lx-fade" style={{ ...TEXT, fill: colors.edge, transitionDelay: "700ms" }} x={x(i) + slot / 2} y={base - h(v) - 6} textAnchor="middle">
+                            <text className="lx-fade" style={{ ...TEXT, fill: accent, transitionDelay: "700ms" }} x={x(i) + slot / 2} y={base - h(v) - 6} textAnchor="middle">
                                 {k(v)}
                             </text>
                         )}
@@ -202,7 +227,7 @@ export function DiasChart({ byDay, shares, focus }: {
                     const mid = (x(s.from - 1) + x(Math.min(s.to, byDay.length))) / 2;
                     const lit = focus === "late" ? i > 0 : focus === "early" ? i === 0 : false;
                     return (
-                        <text key={s.from} x={mid} y={base + 38} textAnchor="middle" style={{ ...TEXT, fill: lit ? colors.edge : colors.graphite, fontWeight: lit ? 500 : 400 }}>
+                        <text key={s.from} x={mid} y={base + 38} textAnchor="middle" style={{ ...TEXT, fill: lit ? accent : colors.graphite, fontWeight: lit ? 500 : 400 }}>
                             Días {s.from}–{s.to} · {Math.round(shares[i]! * 100)}%
                         </text>
                     );
@@ -218,15 +243,25 @@ export function DiasChart({ byDay, shares, focus }: {
 const WEEKDAYS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 
 export function SemanaChart({ byWeekday, share }: { byWeekday: { amount: number; count: number }[]; share: number }) {
-    const { box, bind, node } = useChartTip();
+    const { box, bind, node, v2, accent } = useChartTip();
     const max = Math.max(...byWeekday.map((d) => d.amount)) || 1;
     return (
         <div ref={box} className="relative">
-            <div className="flex h-3 overflow-hidden rounded-full bg-mist">
-                <div className="lx-growx h-full bg-signal" style={{ width: `${share * 100}%` }} />
+            {/* v2: the fair share — two of seven days — marked on the strip,
+                so "more than its days" reads off the bar, not the foot. */}
+            {v2 && (
+                <div className="relative mb-1 h-4 text-label tabular text-graphite">
+                    <span className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${(2 / 7) * 100}%` }}>2 de 7 días · 29%</span>
+                </div>
+            )}
+            <div className="relative">
+                <div className="flex h-3 overflow-hidden rounded-full bg-mist">
+                    <div className="lx-growx h-full bg-signal" style={{ width: `${share * 100}%` }} />
+                </div>
+                {v2 && <span aria-hidden className="absolute -top-1 h-5 w-px bg-ink" style={{ left: `${(2 / 7) * 100}%` }} />}
             </div>
             <div className="mt-2 flex justify-between text-label tabular">
-                <span className="text-edge">Fin de semana · {Math.round(share * 100)}%</span>
+                <span className={v2 ? "text-signalDeep" : "text-edge"}>Fin de semana · {Math.round(share * 100)}%</span>
                 <span className="text-graphite">Entre semana · {Math.round((1 - share) * 100)}%</span>
             </div>
             <svg viewBox="0 0 600 110" className="mt-4 w-full overflow-visible" role="img" aria-label="Gasto por día de la semana">
@@ -236,7 +271,7 @@ export function SemanaChart({ byWeekday, share }: { byWeekday: { amount: number;
                         <g key={i} {...bind(`${WEEKDAYS[i]} · ${mxn(d.amount)} · ${d.count} cargos`)}>
                             <rect x={x} y={0} width={bw} height={84} fill="transparent" />
                             <rect className="lx-grow" style={{ transitionDelay: `${300 + i * 60}ms` }} x={x} y={84 - h} width={bw} height={h} rx={2} fill={we ? colors.signal : colors.ash} />
-                            <text x={x + bw / 2} y={102} textAnchor="middle" style={{ ...TEXT, fill: we ? colors.edge : colors.graphite }}>{WEEKDAYS[i]}</text>
+                            <text x={x + bw / 2} y={102} textAnchor="middle" style={{ ...TEXT, fill: we ? accent : colors.graphite }}>{WEEKDAYS[i]}</text>
                         </g>
                     );
                 })}
@@ -256,8 +291,19 @@ const TIER_FILL: Record<Tier, string> = {
     sin: "url(#lx-hatch)",
 };
 
+// v2: Signal goes to the level the card's title names (primera), and the rest
+// take separated steps of the stone ramp instead of two neighbouring greys.
+const TIER_FILL_V2: Record<Tier, string> = {
+    primera: colors.signal,
+    segunda: chart.neutral[0],
+    tercera: chart.neutral[2],
+    deuda: chart.neutral[4],
+    sin: "url(#lx-hatch)",
+};
+
 export function NecesidadChart({ tiers }: { tiers: TierSlice[] }) {
-    const { box, bind, node } = useChartTip();
+    const { box, bind, node, v2 } = useChartTip();
+    const fills = v2 ? TIER_FILL_V2 : TIER_FILL;
     const [open, setOpen] = useState<Tier | null>(null);
     const toggle = (tier: Tier) => setOpen((cur) => (cur === tier ? null : tier));
     let x = 0;
@@ -293,13 +339,23 @@ export function NecesidadChart({ tiers }: { tiers: TierSlice[] }) {
                         width={Math.max(1, w - 2)}
                         height={22}
                         rx={2}
-                        fill={TIER_FILL[tier]}
+                        fill={fills[tier]}
                         // The others step back instead of the picked one
                         // growing a border: the segment keeps its size, and
                         // the eye lands on the one still at full strength.
                         opacity={open && open !== tier ? 0.35 : 1}
                         onClick={() => toggle(tier)}
                         {...bind(`${TIER_LABELS[tier]} · ${mxn(t.amount)} · ${Math.round(t.share * 100)}%`)}
+                        {...(v2 && {
+                            role: "button",
+                            "aria-pressed": open === tier,
+                            "aria-label": `${TIER_LABELS[tier]}, ${Math.round(t.share * 100)}%`,
+                            onKeyDown: (e: KeyboardEvent) => {
+                                if (e.key !== "Enter" && e.key !== " ") return;
+                                e.preventDefault();
+                                toggle(tier);
+                            },
+                        })}
                     />
                 ))}
                 {picked && (
@@ -312,7 +368,7 @@ export function NecesidadChart({ tiers }: { tiers: TierSlice[] }) {
                         height={24}
                         rx={3}
                         fill="none"
-                        stroke={colors.signal}
+                        stroke={v2 ? colors.ink : colors.signal}
                         strokeWidth={2}
                     />
                 )}
@@ -332,7 +388,7 @@ export function NecesidadChart({ tiers }: { tiers: TierSlice[] }) {
                                 )}
                                 aria-expanded={on}
                             >
-                                <svg width="10" height="10" aria-hidden className="shrink-0"><rect width="10" height="10" rx="2" fill={tier === "sin" ? colors.mist : TIER_FILL[tier]} /></svg>
+                                <svg width="10" height="10" aria-hidden className="shrink-0"><rect width="10" height="10" rx="2" fill={tier === "sin" ? colors.mist : fills[tier]} /></svg>
                                 <span className={cn("flex-1", tier === "sin" ? "text-graphite" : "text-ink", on && "font-medium")}>{TIER_LABELS[tier]}</span>
                                 <span className="tabular text-graphite">{Math.round(t.share * 100)}%</span>
                                 <span className="w-20 text-right tabular text-ink">{mxn(t.amount)}</span>
@@ -372,7 +428,7 @@ export function HorasChart({ rows, hourValue, highlight }: {
     hourValue: number;
     highlight: string | null;
 }) {
-    const { box, bind, node } = useChartTip();
+    const { box, bind, node, v2 } = useChartTip();
     const max = Math.max(...rows.map((r) => r.amount)) || 1;
     return (
         <div ref={box} className="relative space-y-3">
@@ -383,7 +439,7 @@ export function HorasChart({ rows, hourValue, highlight }: {
                     <div key={r.name} {...bind(`${r.name} · ${mxn(r.amount)} · ${Math.round(hours / 8)} jornadas de 8 h`)}>
                         <div className="flex justify-between text-body-sm">
                             <span className={on ? "text-ink" : "text-graphite"}>{r.name}</span>
-                            <span className={cn("tabular", on ? "text-edge" : "text-graphite")}>{hours} h</span>
+                            <span className={cn("tabular", on ? (v2 ? "text-signalDeep" : "text-edge") : "text-graphite")}>{hours} h</span>
                         </div>
                         <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-fog">
                             <div className="lx-growx h-full rounded-full" style={{ width: `${(r.amount / max) * 100}%`, background: on ? colors.signal : colors.graphite, transitionDelay: `${i * 90}ms` }} />
@@ -398,14 +454,18 @@ export function HorasChart({ rows, hourValue, highlight }: {
 
 /* ------------------------------------------------------- 7 · Segunda por mes */
 
-export function SegundaChart({ months }: { months: { key: MonthKey; segunda: number }[] }) {
-    const { box, bind, node } = useChartTip();
+export function SegundaChart({ months, partial = null }: { months: { key: MonthKey; segunda: number }[]; partial?: PartialMonth }) {
+    const { box, bind, node, v2 } = useChartTip();
     const base = 130, top = 16;
     const max = Math.max(...months.map((m) => m.segunda)) * 1.15 || 1;
     const step = 560 / Math.max(1, months.length - 1);
     const pts = months.map((m, i) => [20 + i * step, base - ((base - top) * m.segunda) / max] as const);
     const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
     const peak = months.reduce((b, m, i) => (m.segunda > months[b]!.segunda ? i : b), 0);
+    // v2 labels only the two points the title reads — where it started and
+    // its peak — and lets the others step back.
+    const start = Math.max(0, months.findIndex((m) => m.segunda > 0));
+    const named = (i: number) => i === start || i === peak;
     return (
         <div ref={box} className="relative">
             <svg viewBox="0 0 600 176" className="w-full overflow-visible" role="img" aria-label="Gasto de segunda necesidad por mes">
@@ -414,13 +474,21 @@ export function SegundaChart({ months }: { months: { key: MonthKey; segunda: num
                 ))}
                 <path d={`${d} L${pts[pts.length - 1]![0]} ${base} L${pts[0]![0]} ${base} Z`} className="lx-fade" style={{ transitionDelay: "900ms" }} fill={colors.wash} opacity={0.45} />
                 <path d={d} pathLength={1} className="lx-draw" fill="none" stroke={colors.signal} strokeWidth={2.5} strokeDasharray="1" strokeDashoffset={0} />
-                {months.map((m, i) => (
-                    <g key={m.key} {...bind(`${monthShort(m.key)} · ${mxn(m.segunda)} de segunda necesidad`)}>
-                        <circle className="lx-fade" style={{ transitionDelay: `${200 + i * 180}ms` }} cx={pts[i]![0]} cy={pts[i]![1]} r={5} fill={colors.paper} stroke={colors.signal} strokeWidth={2} />
-                        <text x={pts[i]![0]} y={base + 20} textAnchor="middle" style={TEXT}>{monthShort(m.key)}</text>
-                        <text x={pts[i]![0]} y={base + 36} textAnchor="middle" style={{ ...TEXT, fill: i === peak ? colors.ink : colors.ash }}>{k(m.segunda)}</text>
-                    </g>
-                ))}
+                {months.map((m, i) =>
+                    !v2 ? (
+                        <g key={m.key} {...bind(`${monthShort(m.key)} · ${mxn(m.segunda)} de segunda necesidad`)}>
+                            <circle className="lx-fade" style={{ transitionDelay: `${200 + i * 180}ms` }} cx={pts[i]![0]} cy={pts[i]![1]} r={5} fill={colors.paper} stroke={colors.signal} strokeWidth={2} />
+                            <text x={pts[i]![0]} y={base + 20} textAnchor="middle" style={TEXT}>{monthShort(m.key)}</text>
+                            <text x={pts[i]![0]} y={base + 36} textAnchor="middle" style={{ ...TEXT, fill: i === peak ? colors.ink : colors.ash }}>{k(m.segunda)}</text>
+                        </g>
+                    ) : (
+                        <g key={m.key} {...bind(`${monthAxis(m.key, partial)} · ${mxn(m.segunda)} de segunda necesidad`)}>
+                            <circle className="lx-fade" style={{ transitionDelay: `${200 + i * 180}ms` }} cx={pts[i]![0]} cy={pts[i]![1]} r={named(i) ? 5 : 3.5} fill={colors.paper} stroke={named(i) ? colors.signal : colors.ash} strokeWidth={2} opacity={partial?.key === m.key ? 0.45 : 1} />
+                            <text x={pts[i]![0]} y={base + 20} textAnchor="middle" style={TEXT}>{monthAxis(m.key, partial)}</text>
+                            {named(i) && <text x={pts[i]![0]} y={base + 36} textAnchor="middle" style={{ ...TEXT, fill: colors.ink, fontWeight: i === peak ? 500 : 400 }}>{k(m.segunda)}</text>}
+                        </g>
+                    )
+                )}
             </svg>
             {node}
         </div>

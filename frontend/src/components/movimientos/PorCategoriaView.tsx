@@ -6,8 +6,10 @@ import { useAppData } from "@/components/AppChrome";
 import { BackendNotice, EmptyState, Skeleton } from "@/components/ui";
 import { useBankScope } from "@/lib/banks";
 import { useCategories } from "@/lib/categories";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { composeCategories, repeatedCharges } from "@/lib/categoryComposition";
 import { mxn2 } from "@/lib/format";
+import { pct } from "@/lib/categoryComposition";
 import { applyQuery, categoryLens, UNCATEGORIZED } from "@/lib/movimientosQuery";
 import { track } from "@/lib/telemetry";
 import { useMovimientosSearch } from "./MovimientosSearchProvider";
@@ -41,6 +43,7 @@ export function PorCategoriaView({
     // here and flagged there is the one charge, not two opinions.
     const { items: attention } = useAttention(bounds, dataVersion, statementIds);
     const [openKey, setOpenKey] = useState<string | null>(null);
+    const v2 = useChartsV2();
 
     const listed = useMemo(
         () =>
@@ -56,6 +59,20 @@ export function PorCategoriaView({
         () => new Map(attention.map((a) => [a.transaction_id, a.kind])),
         [attention]
     );
+
+    // v2: the title is the concentration of the spend, from the bar's own
+    // ranking — the window's totals, the same order the stone ramp follows.
+    const finding = useMemo(() => {
+        if (!v2 || !composition) return null;
+        const named = composition.bar.filter((s) => !s.uncategorized);
+        const top = named[0];
+        if (!top) return null;
+        const head = `${top.name} concentra ${pct(top.share)}% de tu gasto`;
+        const n = Math.min(3, named.length);
+        if (n < 2) return head;
+        const share = named.slice(0, n).reduce((s, x) => s + x.share, 0);
+        return `${head}; las ${n === 3 ? "3" : "2"} primeras, ${pct(share)}%`;
+    }, [v2, composition]);
 
     function toggle(key: string) {
         setOpenKey((cur) => (cur === key ? null : key));
@@ -99,7 +116,10 @@ export function PorCategoriaView({
         <div className="space-y-5">
             <section className="card">
                 <div className="mb-5 min-w-0">
-                    <h2 className="text-title-sm font-normal text-ink">Por categoría</h2>
+                    {finding && <p className="eyebrow">Por categoría</p>}
+                    <h2 className={finding ? "mt-1 text-title-sm font-normal text-ink" : "text-title-sm font-normal text-ink"}>
+                        {finding ?? "Por categoría"}
+                    </h2>
                     <p className="mt-1 text-body-sm text-graphite">
                         {composition.bar.length} categoría{composition.bar.length === 1 ? "" : "s"} ·{" "}
                         {composition.spendCount} cargo{composition.spendCount === 1 ? "" : "s"} ·{" "}
@@ -111,6 +131,7 @@ export function PorCategoriaView({
                     slices={composition.bar}
                     activeKey={openKey}
                     onPick={toggle}
+                    {...(finding && { label: finding })}
                 />
                 <p className="mt-3 text-label text-ash">
                     Base: cargos del periodo, sin «Entre mis cuentas» ni excluidos.

@@ -22,7 +22,8 @@ import { useAppData } from "@/components/AppChrome";
 import { AddFijoSheet } from "@/components/fijos/AddFijoSheet";
 import { useMovimientosSearch } from "@/components/movimientos/MovimientosSearchProvider";
 import { BackendNotice, Button, EmptyState, Skeleton } from "@/components/ui";
-import { LoadTimelineChart } from "./LoadTimelineChart";
+import { useChartsV2 } from "@/lib/chartsV2";
+import { LoadTimelineChart, timelineHeadline } from "./LoadTimelineChart";
 import { buildTimeline } from "./projection";
 import { buildSeriesColors, sortByWeight } from "./seriesColors";
 import { typicalDayOfMonth } from "./rhythm";
@@ -129,6 +130,8 @@ export function RecurrentesView({
         () => buildSeriesColors([...detected, ...manuals, ...taughtRest]),
         [detected, manuals, taughtRest]
     );
+    const v2 = useChartsV2();
+    const headline = loading ? null : timelineHeadline(fijosTimeline);
 
     function setHorizon(h: Horizon) {
         track("plan.horizon", { horizon: h, face: "recurrentes" });
@@ -231,8 +234,11 @@ export function RecurrentesView({
                     <section className="card space-y-5">
                         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
                             <div className="min-w-0">
+                                {/* v2: the finding is the title; the metric's
+                                    name steps up into the eyebrow. */}
+                                {v2 && headline && <p className="eyebrow">Cargos Recurrentes</p>}
                                 <h2 className="text-title-sm font-normal text-ink">
-                                    Cargos Recurrentes
+                                    {(v2 && headline) || "Cargos Recurrentes"}
                                 </h2>
                                 <p className="mt-1 text-body-sm text-graphite">
                                     {loading ? (

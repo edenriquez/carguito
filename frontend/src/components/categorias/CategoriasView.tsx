@@ -10,6 +10,8 @@ import {
     useCategories,
 } from "@/lib/categories";
 import { useBankScope } from "@/lib/banks";
+import { useChartsV2 } from "@/lib/chartsV2";
+import { chart as chartTokens, colors as palette } from "@/design/tokens";
 import { monthLabel, mxn } from "@/lib/format";
 import {
     isMetricError,
@@ -94,6 +96,9 @@ export function CategoriasView() {
     // corrected.
     const [edits, setEdits] = useState(0);
     const { openDraft, opening } = useLectura();
+    const v2 = useChartsV2();
+    // v2: the chip under the pointer — a transient focus over the chart.
+    const [hovered, setHovered] = useState<string | null>(null);
 
     // What the list is showing. Both come from the chart or the chips, and
     // both are session state — a filter is a question, not a preference.
@@ -193,17 +198,50 @@ export function CategoriasView() {
 
     /** One chip per category the period actually touched, biggest first —
      *  the stack's own order, so chart and chips agree on what matters. */
-    const chips: CategoryChip[] = useMemo(() => {
+    const ranked = useMemo(() => {
         const totals = new Map<string, number>();
         for (const p of points) totals.set(p.category, (totals.get(p.category) ?? 0) + p.amount);
-        return Array.from(totals.entries())
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, amount]) => ({
+        return Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+    }, [points]);
+
+    // v2: the category the reading is about — the one picked alone, else the
+    // window's biggest. The title names it and it is the one layer in Signal.
+    const focus = v2
+        ? pickedCategories.length === 1
+            ? pickedCategories[0]!
+            : pickedCategories.length === 0
+              ? (ranked[0]?.[0] ?? null)
+              : null
+        : null;
+    const lit = hovered ?? focus;
+
+    // v2: hue is not a category's identity. Each one takes a step of the stone
+    // ramp by its rank over the whole window — stable across months and
+    // filters — and Signal goes to the focused one only. Chart and chips read
+    // from this same map, so a chip is its layer's swatch.
+    const layerColors = useMemo(() => {
+        if (!v2) return categoryColors;
+        const map = new Map<string, string>();
+        ranked.forEach(([name], i) =>
+            map.set(
+                name,
+                lit !== null && sameCategory(name, lit)
+                    ? palette.signal
+                    : chartTokens.neutral[i % chartTokens.neutral.length]!
+            )
+        );
+        return map;
+    }, [v2, categoryColors, ranked, lit]);
+
+    const chips: CategoryChip[] = useMemo(
+        () =>
+            ranked.map(([name, amount]) => ({
                 name,
                 amount,
-                color: categoryColors.get(name) ?? UNCATEGORIZED_COLOR,
-            }));
-    }, [points, categoryColors]);
+                color: layerColors.get(name) ?? UNCATEGORIZED_COLOR,
+            })),
+        [ranked, layerColors]
+    );
 
     // Taxonomy entries the period never touched.
     const untouched = useMemo(() => {
@@ -320,6 +358,60 @@ export function CategoriasView() {
         [monthKeys, selectCustom]
     );
 
+    // v2: hovering a chip whose layer is drawn fades every other layer.
+    const dimmed = useMemo(() => {
+        if (!v2 || !hovered || !chartPoints.some((p) => sameCategory(p.category, hovered))) {
+            return undefined;
+        }
+        return new Set(chartPoints.map((p) => p.category).filter((c) => !sameCategory(c, hovered)));
+    }, [v2, hovered, chartPoints]);
+
+    // v2: the month of the latest movement, if the statement stops before it
+    // ends — drawn apart and kept out of the mean and the month-on-month delta.
+    const partial = useMemo(() => {
+        if (!v2 || !items?.length) return null;
+        const latest = items.reduce((max, t) => (t.date > max ? t.date : max), items[0]!.date);
+        const [y, m, d] = latest.split("-").map(Number);
+        if (!y || !m || !d) return null;
+        const lastDay = new Date(y, m, 0).getDate();
+        return d < lastDay ? { month: latest.slice(0, 7), day: d } : null;
+    }, [v2, items]);
+
+    // v2: the chart's title is its finding, from the whole window (not the
+    // drawn subset): the focus category's share, its total, and — with two
+    // complete months — how the last one moved against the one before.
+    const finding = useMemo(() => {
+        if (!v2 || !focus || points.length === 0) return null;
+        let all = 0;
+        let own = 0;
+        const months: string[] = [];
+        const byMonth = new Map<string, number>();
+        for (const p of points) {
+            all += p.amount;
+            if (!months.includes(p.month)) months.push(p.month);
+            if (sameCategory(p.category, focus)) {
+                own += p.amount;
+                byMonth.set(p.month, (byMonth.get(p.month) ?? 0) + p.amount);
+            }
+        }
+        if (all <= 0 || own <= 0) return null;
+        const n = months.length;
+        let text = `${focus} fue ${Math.round((own / all) * 100)}% de tu gasto: ${mxn(own)} en ${n} ${n === 1 ? "mes" : "meses"}`;
+        const complete = months.filter((m) => m !== partial?.month);
+        const last = complete[complete.length - 1];
+        const prev = complete[complete.length - 2];
+        const before = prev ? (byMonth.get(prev) ?? 0) : 0;
+        if (last && prev && before > 0) {
+            const delta = Math.round((((byMonth.get(last) ?? 0) - before) / before) * 100);
+            const label = (key: string) => {
+                const date = parsePeriodKey(key);
+                return date ? monthLabel(date) : key;
+            };
+            text += `; ${delta > 0 ? "+" : ""}${delta}% en ${label(last)} vs ${label(prev)}`;
+        }
+        return text;
+    }, [v2, focus, points, partial]);
+
     const pickedMonthLabel = useMemo(() => {
         if (!pickedMonths) return undefined;
         const label = (key: string) => {
@@ -341,7 +433,10 @@ export function CategoriasView() {
                 </EmptyState>
             ) : (
                 <>
-                    <ChartCard title="Gasto por categoría, mes a mes">
+                    <ChartCard
+                        title={finding ?? "Gasto por categoría, mes a mes"}
+                        subtitle={finding ? "Gasto por categoría, mes a mes" : undefined}
+                    >
                         {loading ? (
                             <Skeleton className="h-[360px]" />
                         ) : (
@@ -366,12 +461,15 @@ export function CategoriasView() {
                                         // selection is a different chart.
                                         key={`${pickedCategories.join("|") || "todas"}-${pickedMonths?.start ?? ""}-${pickedMonths?.end ?? ""}`}
                                         points={chartPoints}
-                                        categoryColors={categoryColors}
+                                        categoryColors={layerColors}
                                         onPick={handlePick}
+                                        dimmed={dimmed}
+                                        partial={partial}
+                                        ariaLabel={finding ?? undefined}
                                     />
                                 </RangeBrush>
                                 </div>
-                                <p className="text-label text-ash">
+                                <p className={cn("text-label", v2 ? "text-graphite" : "text-ash")}>
                                     Haz clic en una capa para ver sus movimientos, o
                                     arrastra sobre los meses para acotar un rango.
                                     {untouched.length > 0 &&
@@ -406,6 +504,7 @@ export function CategoriasView() {
                                 month={pickedMonths?.start ?? null}
                                 monthLabel={pickedMonthLabel}
                                 onClearMonth={() => setPickedMonths(null)}
+                                onHover={v2 ? setHovered : undefined}
                             />
                         </div>
 

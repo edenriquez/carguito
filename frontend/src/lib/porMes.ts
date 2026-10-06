@@ -144,3 +144,48 @@ export function monthName(key: MonthKey, withYear: boolean): string {
 export function spansYears(keys: MonthKey[]): boolean {
     return new Set(keys.map((k) => k.slice(0, 4))).size > 1;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Gráficas v2                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** The anchor's month when the record stops before its last day: "al 6". */
+export type PartialMonth = { key: MonthKey; day: number };
+
+/**
+ * v2: the span ends on the newest movement, so its last month is usually
+ * still running. Counting it as a month of spending pulls the mean down by
+ * however many days are missing — the chart marks it and the mean skips it.
+ */
+export function partialMonthOf(anchor: string): PartialMonth | null {
+    const key = monthKeyOf(anchor);
+    if (anchor >= monthBounds(key).end) return null;
+    return { key, day: fromIso(anchor).getDate() };
+}
+
+/** v2: the mean over the months that hold cargos, the running one left out.
+ *  Falls back to every held month when the running one is all there is. */
+export function completeAverage(months: MonthSlice[], partial: MonthKey | null): number {
+    const held = months.filter((m) => m.count > 0);
+    const complete = held.filter((m) => m.key !== partial);
+    const pool = complete.length > 0 ? complete : held;
+    return pool.length > 0 ? pool.reduce((s, m) => s + m.amount, 0) / pool.length : 0;
+}
+
+/** v2: the month the title names — the biggest complete one, with how far it
+ *  sits above the mean. Null when there is no run to compare against. */
+export function peakMonth(
+    months: MonthSlice[],
+    average: number,
+    partial: MonthKey | null
+): { month: MonthSlice; over: number; lastComplete: boolean } | null {
+    const complete = months.filter((m) => m.count > 0 && m.key !== partial);
+    if (complete.length < 2 || average <= 0) return null;
+    const month = complete.reduce((a, b) => (b.amount > a.amount ? b : a));
+    if (month.amount <= average) return null;
+    return {
+        month,
+        over: (month.amount - average) / average,
+        lastComplete: month.key === complete[complete.length - 1]!.key,
+    };
+}

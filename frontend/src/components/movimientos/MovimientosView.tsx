@@ -7,6 +7,7 @@ import { useAppData } from "@/components/AppChrome";
 import { useSearchParams } from "next/navigation";
 import { useTimeWindow } from "@/components/TimeWindowProvider";
 import { msToIso } from "@/lib/window";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { track } from "@/lib/telemetry";
 import { draftFromClauses, draftFromNeedle } from "@/lib/lectura";
 import {
@@ -36,6 +37,7 @@ import {
     COLOR_MODES,
     TransactionsChart,
     dateToMs,
+    medianAmount,
     type ChartMode,
     type ColorMode,
 } from "@/components/charts/TransactionsChart";
@@ -85,6 +87,7 @@ export function MovimientosView() {
         statementIds
     );
     const [lensFocus, setLensFocus] = useState<LensFocus>(null);
+    const v2 = useChartsV2();
 
     // Each panel owns its settings, keyed by its own id: the chart's are the
     // chart's, the list's are the list's, and both outlive this mount.
@@ -166,6 +169,14 @@ export function MovimientosView() {
         });
     }, [filtered, attention, mode]);
 
+    // v2: a new set of lecturas opens on its most serious one (warn before
+    // info) instead of waiting for a click; a chip or Esc replaces it. Runs
+    // after the reset above, so a new window lands focused, not cleared.
+    useEffect(() => {
+        if (!v2) return;
+        setLensFocus(defaultFocus(lensGroups));
+    }, [v2, lensGroups]);
+
     const attentionByRow = useMemo(
         () => new Map(attention.map((a) => [a.transaction_id, a.kind])),
         [attention]
@@ -224,13 +235,48 @@ export function MovimientosView() {
     }, [filtered, bounds.start, bounds.end, query]);
     const filtering = queryIsActive(query) && Boolean(listed && listed.length > 0);
 
+    // v2: the orientation becomes the title, with the contrast that makes it
+    // a finding — the biggest cargo against the typical one. The span and the
+    // criteria move under it with the chart's name.
+    const finding = useMemo(() => {
+        if (!v2 || !filtered) return null;
+        const expenses = filtered.filter((t) => t.type === "expense");
+        if (expenses.length === 0) return null;
+        const spent = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const head = `Salieron ${mxn(spent)} en ${expenses.length.toLocaleString("es-MX")} cargo${expenses.length === 1 ? "" : "s"}`;
+        const median = medianAmount(filtered);
+        if (expenses.length < 3 || !median) return head;
+        const top = expenses.reduce((a, b) => (Math.abs(b.amount) > Math.abs(a.amount) ? b : a));
+        const times = Math.abs(top.amount) / median;
+        const x = times < 10 ? times.toFixed(1).replace(/\.0$/, "") : String(Math.round(times));
+        return `${head}; el mayor, ${shorten(top.description)} ${mxn(Math.abs(top.amount))}, es ${x}× tu mediana`;
+    }, [v2, filtered]);
+    const findingSub = useMemo(() => {
+        if (!finding || !orientation) return orientation;
+        const span =
+            bounds.start && bounds.end
+                ? `del ${dayLabel(fromIso(bounds.start))} al ${dayLabel(fromIso(bounds.end))}`
+                : "todo tu historial";
+        const needle = query.needle.trim()
+            ? ` · contiene «${query.needle.trim()}»`
+            : queryIsActive(query)
+              ? " · estos criterios"
+              : "";
+        return `Cada movimiento · ${span}${needle}`;
+    }, [finding, orientation, bounds.start, bounds.end, query]);
+    // v2: the category the reading is narrowed to is the one Signal marks.
+    const focusCategoryId =
+        v2 && query.categoryIds.length === 1 && query.categoryIds[0] !== UNCATEGORIZED
+            ? query.categoryIds[0]!
+            : null;
+
     return (
         <div className="space-y-4 sm:space-y-6">
             {error && <BackendNotice what="tus movimientos" detail={error} />}
 
             <ChartCard
-                title="Cada movimiento"
-                subtitle={orientation}
+                title={finding ?? "Cada movimiento"}
+                subtitle={finding ? findingSub : orientation}
                 action={<PanelSettingsToggle />}
                 controls={
                     <>
@@ -325,6 +371,8 @@ export function MovimientosView() {
                             onRangeSelect={(r) =>
                                 r && selectCustom(msToIso(r.start), msToIso(r.end), "drag:movimientos")
                             }
+                            focusCategoryId={focusCategoryId}
+                            ariaLabel={finding ?? undefined}
                         />
                     </ChartLens>
                     </div>
@@ -519,6 +567,21 @@ function EmptyNote({
 function fromIso(day: string): Date {
     const [y, m, d] = day.split("-").map(Number);
     return new Date(y, m - 1, d);
+}
+
+/** v2: the lectura a fresh set opens on — the first warn, else the first. */
+function defaultFocus(groups: LensGroup[]): LensFocus {
+    for (const g of groups) {
+        const index = g.lecturas.findIndex((l) => l.severity === "warn");
+        if (index >= 0) return { groupId: g.id, index };
+    }
+    return groups[0]?.lecturas.length ? { groupId: groups[0].id, index: 0 } : null;
+}
+
+/** A merchant line short enough for a title. */
+function shorten(description: string): string {
+    const d = description.trim();
+    return d.length > 28 ? `${d.slice(0, 27).trimEnd()}…` : d;
 }
 
 /** "Cargo inusual" → "Cargos inusuales"; the other labels pluralise by a plain s. */

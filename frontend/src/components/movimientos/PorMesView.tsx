@@ -7,13 +7,19 @@ import { useTimeWindow } from "@/components/TimeWindowProvider";
 import { BackendNotice, EmptyState, Skeleton } from "@/components/ui";
 import { useBankScope } from "@/lib/banks";
 import { useCategories } from "@/lib/categories";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { mxn } from "@/lib/format";
 import { applyQuery, categoryLens } from "@/lib/movimientosQuery";
 import {
+    completeAverage,
     composeMonths,
     monthBounds,
+    monthName,
+    partialMonthOf,
+    peakMonth,
     spanBounds,
     spanMonthKeys,
+    spansYears,
 } from "@/lib/porMes";
 import { track } from "@/lib/telemetry";
 import { useMovimientosSearch } from "./MovimientosSearchProvider";
@@ -44,6 +50,7 @@ export function PorMesView({
     const categories = useCategories();
     const { query, openModal } = useMovimientosSearch();
     const [openKey, setOpenKey] = useState<string | null>(null);
+    const v2 = useChartsV2();
 
     const keys = useMemo(() => spanMonthKeys(anchor), [anchor]);
     const bounds = useMemo(() => spanBounds(anchor), [anchor]);
@@ -57,6 +64,27 @@ export function PorMesView({
         () => (listed ? composeMonths(listed, categories, keys) : null),
         [listed, categories, keys]
     );
+
+    // v2: the running month is marked and left out of the mean, and the
+    // title states the peak against that mean.
+    const partial = useMemo(() => (v2 ? partialMonthOf(anchor) : null), [v2, anchor]);
+    const average = reading
+        ? v2
+            ? completeAverage(reading.months, partial?.key ?? null)
+            : reading.average
+        : 0;
+    const peak = useMemo(
+        () => (v2 && reading ? peakMonth(reading.months, average, partial?.key ?? null) : null),
+        [v2, reading, average, partial]
+    );
+    const finding = useMemo(() => {
+        if (!peak) return null;
+        const name = monthName(peak.month.key, spansYears(keys));
+        const over = `${Math.round(peak.over * 100)}% más que tu promedio de ${mxn(average)}`;
+        return peak.lastComplete
+            ? `${capitalize(name)}, tu último mes completo, fue el más alto: ${mxn(peak.month.amount)}, ${over}`
+            : `Gastaste ${mxn(peak.month.amount)} en ${name}: ${over}`;
+    }, [peak, keys, average]);
 
     // Stable on purpose: it is part of the chart's options, and a new options
     // object on every render means Apex tearing the chart down and redrawing
@@ -105,18 +133,34 @@ export function PorMesView({
     return (
         <div className="space-y-5">
             <section className="card space-y-5">
-                <div className="min-w-0">
-                    <h2 className="text-title-sm font-normal text-ink">Por mes</h2>
-                    <p className="mt-1 text-body-sm text-graphite">
-                        Promedio mensual:{" "}
-                        <span className="tabular text-ink">{mxn(reading.average)}</span>
-                    </p>
-                </div>
+                {finding ? (
+                    <div className="min-w-0">
+                        <p className="eyebrow">Por mes</p>
+                        <h2 className="mt-1 text-title-sm font-normal text-ink">{finding}</h2>
+                        {partial && (
+                            <p className="mt-1 text-body-sm text-graphite">
+                                {capitalize(monthName(partial.key, spansYears(keys)))} va al{" "}
+                                {partial.day} y no entra al promedio.
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <div className="min-w-0">
+                        <h2 className="text-title-sm font-normal text-ink">Por mes</h2>
+                        <p className="mt-1 text-body-sm text-graphite">
+                            Promedio mensual:{" "}
+                            <span className="tabular text-ink">{mxn(average)}</span>
+                        </p>
+                    </div>
+                )}
                 <PorMesChart
                     months={reading.months}
-                    average={reading.average}
+                    average={average}
                     openKey={openKey}
                     onPick={toggle}
+                    focusKey={peak?.month.key ?? null}
+                    partial={partial}
+                    ariaLabel={finding ?? undefined}
                 />
                 <p className="text-label text-ash">
                     Base: cargos del periodo, sin «Entre mis cuentas» ni excluidos.
@@ -162,4 +206,8 @@ function PorMesSkeleton() {
             </section>
         </div>
     );
+}
+
+function capitalize(s: string): string {
+    return s.charAt(0).toUpperCase() + s.slice(1);
 }

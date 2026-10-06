@@ -51,6 +51,7 @@ import {
     NecesidadChart,
     SegundaChart,
     SemanaChart,
+    type PartialMonth,
 } from "./EstadoCharts";
 import {
     CalendarioChart,
@@ -226,6 +227,13 @@ export function EstadoView({
     const complete = completeMonths(held, coverage);
     const completeKeys = complete.map((m) => m.key);
     const skipped = held.filter((m) => !completeKeys.includes(m.key));
+    // The latest month when the record stops short of its last day: the
+    // month charts draw it apart in «Gráficas v2».
+    const endDay = Number(coverage.end.slice(8, 10));
+    const partial: PartialMonth =
+        last && coverage.end.slice(0, 7) === last.key && endDay < new Date(Number(last.key.slice(0, 4)), Number(last.key.slice(5, 7)), 0).getDate()
+            ? { key: last.key, day: endDay }
+            : null;
     const skippedNote = skipped.length === 0
         ? ""
         : ` Sin ${skipped.map((m) => name(m.key)).join(" ni ")}, que el registro no cubre completo.`;
@@ -387,7 +395,7 @@ export function EstadoView({
                         title={bal.factor > 1 ? `Sale $${bal.factor.toFixed(2)} por cada $1 que entra` : `Salen $${bal.factor.toFixed(2)} de cada $1 que entra`}
                         foot={`${bal.gap > 0 ? `En ${bal.months} meses faltaron ~${mxn(bal.gap)}.` : `En ${bal.months} meses te sobraron ~${mxn(-bal.gap)}.`} El hogar promedio en México gasta $${NATIONAL_SPEND_RATIO.toFixed(2)} de cada peso.`}
                     >
-                        <BalanceChart months={reading.months} income={income!} />
+                        <BalanceChart months={reading.months} income={income!} partial={partial} />
                     </Card>
                 )}
 
@@ -559,7 +567,7 @@ export function EstadoView({
                     title={growth ? `Tu gasto de segunda ${growth} desde ${monthName(first!.key, withYear)}` : "Tu gasto de segunda necesidad, mes a mes"}
                     foot={first ? `De ${mxn(first.segunda)} en ${monthName(first.key, withYear)} a ${mxn(peak.segunda)} en ${monthName(peak.key, withYear)}.` : ""}
                 >
-                    <SegundaChart months={reading.months} />
+                    <SegundaChart months={reading.months} partial={partial} />
                 </Card>
             </Section>
 
@@ -608,7 +616,7 @@ export function EstadoView({
                         ? "Todo lo que sale de tus cuentas queda escrito en el estado. Cada retiro sería un hueco en esta lectura."
                         : `${pct(cash.share)} de tu gasto, en ${cash.count} ${cash.count === 1 ? "retiro" : "retiros"}. Lo que pagas con tarjeta deja huella; el efectivo no.`}
                 >
-                    <EfectivoChart months={reading.months} share={cash.share} />
+                    <EfectivoChart months={reading.months} share={cash.share} partial={partial} />
                 </Card>
 
                 <Card

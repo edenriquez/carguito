@@ -23,6 +23,7 @@ export function CategoryFilterBar({
     month,
     monthLabel,
     onClearMonth,
+    onHover,
 }: {
     chips: CategoryChip[];
     /** Category names in the set, empty for "todas". */
@@ -31,6 +32,9 @@ export function CategoryFilterBar({
     month: string | null;
     monthLabel?: string;
     onClearMonth: () => void;
+    /** v2: a chip under the pointer (or keyboard focus) lights its layer in
+     *  the chart; null when it leaves. Absent in v1. */
+    onHover?: (name: string | null) => void;
 }) {
     return (
         <div className="flex flex-wrap items-center gap-1.5">
@@ -57,6 +61,10 @@ export function CategoryFilterBar({
                         aria-pressed={active}
                         title={`${c.name} · ${mxn(c.amount)}`}
                         onClick={() => onPick(c.name)}
+                        onMouseEnter={onHover && (() => onHover(c.name))}
+                        onMouseLeave={onHover && (() => onHover(null))}
+                        onFocus={onHover && (() => onHover(c.name))}
+                        onBlur={onHover && (() => onHover(null))}
                         className={cn(
                             CHIP,
                             "gap-1.5",

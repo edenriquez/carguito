@@ -6,6 +6,7 @@ import type { Transaction } from "@/lib/api";
 import { chart as chartTokens, colors } from "@/design/tokens";
 import { categoryColor, categoryName, type CategoryInfo } from "@/lib/categories";
 import { compactMxn, dayLabel, monthLabel, mxn, mxn2 } from "@/lib/format";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { ApexChart } from "./apex/ApexChart";
 
 const CHART_ID = "tx-chart";
@@ -56,6 +57,20 @@ export function dateToMs(isoDate: string): number {
 
 const toMs = dateToMs;
 
+/** v2: categories named in the stone ramp before the rest go to one Ash series. */
+const NAMED_CATEGORIES = 5;
+
+/** The middle cargo: what "a normal charge" is in this window. */
+export function medianAmount(transactions: Transaction[]): number | null {
+    const amounts = transactions
+        .filter((t) => t.type === "expense")
+        .map((t) => Math.abs(t.amount))
+        .sort((a, b) => a - b);
+    if (amounts.length === 0) return null;
+    const mid = Math.floor(amounts.length / 2);
+    return amounts.length % 2 ? amounts[mid]! : (amounts[mid - 1]! + amounts[mid]!) / 2;
+}
+
 /** A dragged x-range, in the same local-midnight ms as the marks. */
 export type ChartRange = { start: number; end: number };
 
@@ -84,6 +99,8 @@ export function TransactionsChart({
     onRangeSelect,
     zoomRange = null,
     height = 320,
+    focusCategoryId = null,
+    ariaLabel,
 }: {
     /** Already window+search filtered, `tx_date DESC` from the API. */
     transactions: Transaction[];
@@ -110,10 +127,15 @@ export function TransactionsChart({
      *  selection would cover the whole plot and say nothing. */
     zoomRange?: ChartRange | null;
     height?: number;
+    /** v2, categoria mode: the category the reading is about, in Signal. */
+    focusCategoryId?: string | null;
+    /** v2: the title's sentence, for screen readers. */
+    ariaLabel?: string;
 }) {
+    const v2 = useChartsV2();
     const byCategory = colorMode === "categoria" && categories !== null;
 
-    const { series, pointIds, idToPoint, seriesColors, stackedBuckets } = useMemo(() => {
+    const { series, pointIds, idToPoint, seriesColors, stackedBuckets, firstBucket } = useMemo(() => {
         const pool = showIncome
             ? transactions
             : transactions.filter((t) => t.type === "expense");
@@ -124,7 +146,42 @@ export function TransactionsChart({
             let groups: Transaction[][];
             let names: string[];
             let seriesColors: string[];
-            if (byCategory) {
+            if (byCategory && v2) {
+                // v2: identity is position in the stone ramp, not hue. The
+                // ramp follows each category's total over the whole window,
+                // so a colour means the same rank wherever it shows; Signal
+                // is only the focused category; past the top five, one Ash.
+                const keys = new Map<string | null, Transaction[]>();
+                for (const t of pool) {
+                    const k = t.category_id ?? null;
+                    const g = keys.get(k);
+                    if (g) g.push(t);
+                    else keys.set(k, [t]);
+                }
+                const total = (txns: Transaction[]) =>
+                    txns.reduce((s, t) => s + Math.abs(t.amount), 0);
+                const ranked = Array.from(keys.entries()).sort(
+                    (a, b) => total(b[1]) - total(a[1])
+                );
+                const focus = ranked.find(([k]) => focusCategoryId !== null && k === focusCategoryId);
+                const others = ranked.filter((e) => e !== focus);
+                const top = others.slice(0, NAMED_CATEGORIES);
+                const rest = others.slice(NAMED_CATEGORIES).flatMap(([, txns]) => txns);
+                groups = [...(focus ? [focus[1]] : []), ...top.map(([, txns]) => txns)];
+                names = [
+                    ...(focus ? [categoryName(categories, focus[0])] : []),
+                    ...top.map(([k]) => categoryName(categories, k)),
+                ];
+                seriesColors = [
+                    ...(focus ? [colors.signal] : []),
+                    ...top.map((_, i) => chartTokens.neutral[i]!),
+                ];
+                if (rest.length > 0) {
+                    groups.push(rest);
+                    names.push("Otras categorías");
+                    seriesColors.push(colors.ash);
+                }
+            } else if (byCategory) {
                 const keys = new Map<string | null, Transaction[]>();
                 for (const t of pool) {
                     const k = t.category_id ?? null;
@@ -162,6 +219,7 @@ export function TransactionsChart({
                 ),
                 seriesColors,
                 stackedBuckets: [] as string[],
+                firstBucket: null as string | null,
             };
         }
 
@@ -210,6 +268,7 @@ export function TransactionsChart({
                 pointIds: [] as string[][],
                 idToPoint: new Map<string, [number, number]>(),
                 seriesColors: [chartTokens.neutral[1], chartTokens.neutral[4], colors.signal],
+                firstBucket: buckets[0] ?? null,
                 stackedBuckets: buckets.map((b) => {
                     const date = toMs(grain === "day" ? b : `${b}-01`);
                     return grain === "day"
@@ -221,7 +280,14 @@ export function TransactionsChart({
 
         // Unreachable: both modes return above. Keeps TS's control-flow happy.
         throw new Error(`unknown chart mode: ${mode}`);
-    }, [transactions, showIncome, mode, byCategory, categories, grain]);
+    }, [transactions, showIncome, mode, byCategory, categories, grain, v2, focusCategoryId]);
+
+    // v2: the typical cargo, drawn as a rule so an outlier reads as "far above
+    // normal", not just "high".
+    const median = useMemo(
+        () => (v2 && mode === "scatter" ? medianAmount(transactions) : null),
+        [v2, mode, transactions]
+    );
 
     // Both handlers live in refs so the options memo does not rebuild every
     // time the parent re-renders (parents pass inline functions). This is
@@ -249,7 +315,7 @@ export function TransactionsChart({
     // declaration order — so the effect re-applies onto the fresh chart.
     useEffect(() => {
         lastExeced.current = null;
-    }, [mode, showIncome, colorMode, zoomRange]);
+    }, [mode, showIncome, colorMode, zoomRange, v2, focusCategoryId]);
 
     // Row → mark. Data or mode changes rebuild the chart, so re-run then too.
     useEffect(() => {
@@ -417,6 +483,23 @@ export function TransactionsChart({
                 },
                 // Nothing to select in an aggregate.
                 states: { active: { filter: { type: "none", value: 0 } } },
+                // v2: the net is a running sum that starts at zero on the
+                // window's first bucket; the zero is drawn and says so.
+                ...(v2 &&
+                    firstBucket && {
+                        annotations: {
+                            yaxis: [
+                                ruleAnnotation(
+                                    0,
+                                    `neto acumulado desde ${
+                                        grain === "day"
+                                            ? dayLabel(new Date(toMs(firstBucket)))
+                                            : monthLabel(new Date(toMs(`${firstBucket}-01`)), true)
+                                    }`
+                                ),
+                            ],
+                        },
+                    }),
             };
         }
 
@@ -425,6 +508,9 @@ export function TransactionsChart({
                 ...base,
                 colors: seriesColors,
                 markers: { size: 4, strokeWidth: 0, hover: { size: 6 } },
+                ...(median !== null && {
+                    annotations: { yaxis: [ruleAnnotation(median, `mediana ${mxn(median)}`)] },
+                }),
                 xaxis: {
                     type: "datetime",
                     // The dragged range, applied as the axis domain. A hair of
@@ -470,7 +556,7 @@ export function TransactionsChart({
 
         // Unreachable: both modes return above.
         throw new Error(`unknown chart mode: ${mode}`);
-    }, [mode, grain, showIncome, byCategory, categories, transactions, seriesColors, stackedBuckets, brushable, zoomRange]);
+    }, [mode, grain, showIncome, byCategory, categories, transactions, seriesColors, stackedBuckets, brushable, zoomRange, v2, median, firstBucket]);
 
     const type = mode === "scatter" ? "scatter" : "line";
     return (
@@ -481,13 +567,33 @@ export function TransactionsChart({
         <ApexChart
             // showIncome and colorMode are in the key too: both change the
             // series structure or color strategy, both remount-worthy.
-            key={`${mode}-${showIncome}-${colorMode}-${zoomRange?.start ?? "all"}-${zoomRange?.end ?? "all"}`}
+            // v2 regroups categoria mode around its focus: also a new chart.
+            key={`${mode}-${showIncome}-${colorMode}-${zoomRange?.start ?? "all"}-${zoomRange?.end ?? "all"}${v2 ? `-v2-${focusCategoryId ?? ""}` : ""}`}
             type={type}
             series={series}
             options={options}
             height={height}
+            ariaLabel={ariaLabel}
         />
     );
+}
+
+/** v2: a dashed reference rule with its value written on it, in Graphite —
+ *  the reference is stone, never Signal. */
+function ruleAnnotation(y: number, text: string) {
+    return {
+        y,
+        strokeDashArray: 4,
+        borderColor: colors.muted,
+        label: {
+            text,
+            position: "right",
+            textAnchor: "end",
+            offsetY: -4,
+            borderWidth: 0,
+            style: { background: "transparent", color: colors.graphite, fontSize: "11px" },
+        },
+    };
 }
 
 function escapeHtml(s: string): string {

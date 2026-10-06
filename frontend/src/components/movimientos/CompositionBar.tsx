@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { mxn2 } from "@/lib/format";
 import { barFill, pct, type CategorySlice } from "@/lib/categoryComposition";
 
@@ -62,12 +63,19 @@ export function CompositionBar({
     // at once would need two gutters, and the question under the cursor is
     // always the more urgent of the two.
     const [hoverKey, setHoverKey] = useState<string | null>(null);
+    const v2 = useChartsV2();
 
     if (slices.length === 0) return null;
 
     const named = slices.filter((s) => !s.uncategorized);
-    const legend = named.slice(0, LEGEND_MAX);
-    const pinned = slices.find((s) => s.key === (hoverKey ?? activeKey)) ?? null;
+    // v2: a gap worth more than a twentieth of the spend is part of the
+    // reading, so the legend names it too — last, like the bar draws it.
+    const gap = v2 ? slices.find((s) => s.uncategorized && s.share > 0.05) : undefined;
+    const legend = [...named.slice(0, LEGEND_MAX), ...(gap ? [gap] : [])];
+    // v2: with nothing pointed at or open, the pin rests on the biggest slice
+    // — the one the title names — so its figure is on screen without a hover.
+    const restKey = v2 ? (named[0]?.key ?? null) : null;
+    const pinned = slices.find((s) => s.key === (hoverKey ?? activeKey ?? restKey)) ?? null;
     const pin = pinned ? midpoint(slices, pinned.key) : null;
 
     return (
@@ -159,7 +167,7 @@ export function CompositionBar({
                                 onPointerLeave={() => setHoverKey((c) => (c === s.key ? null : c))}
                                 onFocus={() => setHoverKey(s.key)}
                                 onBlur={() => setHoverKey((c) => (c === s.key ? null : c))}
-                                style={{ "--dot": barFill(rank, false, on) } as CSSProperties}
+                                style={{ "--dot": barFill(rank, s.uncategorized, on) } as CSSProperties}
                                 className={cn(
                                     "group inline-flex items-center gap-1.5 transition-colors duration-100",
                                     on ? "font-medium text-ink" : "hover:text-ink"

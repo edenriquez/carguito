@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import { dayLabel, mxn2 } from "@/lib/format";
 import { fromIso } from "@/lib/porMes";
 import { basisLabel, type PricePoint, type ProductPrices } from "@/lib/prices";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { ApexChart } from "@/components/charts/apex/ApexChart";
 
 /** A purchase that can be drawn: it has a date and a comparable figure. */
@@ -68,6 +69,7 @@ export function PriceTracker({
     className?: string;
 }) {
     const basis = basisLabel(product);
+    const v2 = useChartsV2();
 
     const plotted = useMemo<Plotted[]>(
         () =>
@@ -90,6 +92,19 @@ export function PriceTracker({
         });
         return { lo, hi };
     }, [plotted]);
+
+    // v2: the axis frames the prices, not zero — a 3% move should be visible —
+    // so the bounds are explicit with room above and below, and a note says
+    // so under the chart. The typical price is kept inside the frame.
+    const yBounds = useMemo(() => {
+        if (!v2 || plotted.length < 2) return null;
+        const values = plotted.map((p) => p.value);
+        if (product.median !== null) values.push(product.median);
+        const lo = Math.min(...values);
+        const hi = Math.max(...values);
+        const pad = Math.max((hi - lo) * 0.15, hi * 0.02, 0.5);
+        return { min: Math.max(0, lo - pad), max: hi + pad };
+    }, [v2, plotted, product.median]);
 
     const options: ApexOptions = useMemo(
         () => ({
@@ -139,10 +154,12 @@ export function PriceTracker({
                 axisTicks: { show: false },
                 tooltip: { enabled: false },
             },
-            yaxis: {
-                forceNiceScale: true,
-                labels: { formatter: (v: number) => mxn2(v) },
-            },
+            yaxis: yBounds
+                ? { ...yBounds, labels: { formatter: (v: number) => mxn2(v) } }
+                : {
+                      forceNiceScale: true,
+                      labels: { formatter: (v: number) => mxn2(v) },
+                  },
             grid: {
                 xaxis: { lines: { show: false } },
                 yaxis: { lines: { show: true } },
@@ -164,7 +181,7 @@ export function PriceTracker({
                                       borderWidth: 0,
                                       style: {
                                           background: "transparent",
-                                          color: colors.ash,
+                                          color: v2 ? colors.graphite : colors.ash,
                                           fontSize: "10px",
                                       },
                                   },
@@ -182,16 +199,20 @@ export function PriceTracker({
                     const size =
                         pt.size !== null && pt.size_unit ? ` · ${pt.size} ${pt.size_unit}` : "";
                     const qty = pt.quantity !== null && pt.quantity !== 1 ? ` · × ${pt.quantity}` : "";
+                    const vsTypical =
+                        v2 && product.median
+                            ? ` (${signedPct(Math.round(((p.value - product.median) / product.median) * 100))} vs típico)`
+                            : "";
                     return `
                         <div style="padding:8px 10px">
                             <div style="font-size:12px;color:${colors.graphite}">${p.approx ? "≈ " : ""}${dayLabel(new Date(p.at))} · ${pt.store ?? "tienda ilegible"}</div>
-                            <div style="font-size:13px;color:${colors.ink};font-variant-numeric:tabular-nums">${mxn2(p.value)} ${basis}</div>
+                            <div style="font-size:13px;color:${colors.ink};font-variant-numeric:tabular-nums">${mxn2(p.value)} ${basis}${vsTypical}</div>
                             <div style="font-size:12px;color:${colors.graphite};font-variant-numeric:tabular-nums">${mxn2(pt.amount)}${size}${qty}</div>
                         </div>`;
                 },
             },
         }),
-        [plotted, extremes, product.median, basis]
+        [plotted, extremes, product.median, basis, v2, yBounds]
     );
 
     const series = useMemo(
@@ -213,9 +234,11 @@ export function PriceTracker({
     const hi = extremes ? plotted[extremes.hi] : null;
     const last = plotted[plotted.length - 1];
     const anyApprox = plotted.some((p) => p.approx);
+    const finding = v2 ? priceFinding(last.value, basis, product) : null;
 
     return (
         <div className={className}>
+            {finding && <p className="mb-1 text-body-sm text-ink">{finding}</p>}
             {/* The three figures the line is read for, said in words above it
                 so the chart is never the only place they live. */}
             <dl className="mb-1 flex flex-wrap gap-x-5 gap-y-1 text-label">
@@ -235,7 +258,11 @@ export function PriceTracker({
                 series={series}
                 options={options}
                 height={height}
+                ariaLabel={finding ?? undefined}
             />
+            {yBounds && yBounds.min > 0 && (
+                <p className="mt-1 text-label text-graphite">El eje no empieza en cero.</p>
+            )}
             {anyApprox && (
                 <p className="mt-1 text-label text-ash">
                     ≈ fecha de la foto: ese ticket no traía una fecha legible.
@@ -283,4 +310,19 @@ function Fact({
             </dd>
         </div>
     );
+}
+
+/** v2: the reading in one line — the last price against the typical one. */
+function priceFinding(last: number, basis: string, product: ProductPrices): string | null {
+    const delta = product.latest_vs_median;
+    if (product.median === null || delta === null) return null;
+    const vs =
+        delta === 0
+            ? "igual a lo típico"
+            : `${Math.abs(delta)}% ${delta > 0 ? "sobre" : "bajo"} lo típico`;
+    return `Hoy ${mxn2(last)} ${basis}, ${vs} (${mxn2(product.median)}).`;
+}
+
+function signedPct(n: number): string {
+    return `${n > 0 ? "+" : ""}${n}%`;
 }
