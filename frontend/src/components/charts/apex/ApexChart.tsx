@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { memo, useMemo, useState } from "react";
 import type { ApexOptions } from "apexcharts";
 import { ChartSkeleton } from "@/components/ui";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { baseOptions } from "./theme";
 
 /**
@@ -47,6 +48,8 @@ export type ApexChartProps = {
     height?: number | string;
     width?: number | string;
     className?: string;
+    /** What the chart says, for screen readers (v2): the finding, not "gráfica". */
+    ariaLabel?: string;
 };
 
 /**
@@ -67,20 +70,25 @@ function ApexChartInner({
     height = 320,
     width = "100%",
     className,
+    ariaLabel,
 }: ApexChartProps) {
     // The placeholder is this component's, not `next/dynamic`'s, because only
     // here is the chart's height known: a 320px default standing in for a
     // 280px chart is a 40px jump the moment the real one lands.
     const [ready, setReady] = useState(false);
 
-    const merged = useMemo(
-        () =>
-            deepMerge(baseOptions as Plain, {
-                ...(options as Plain),
-                chart: { ...((options?.chart ?? {}) as Plain), type },
-            }) as ApexOptions,
-        [options, type]
-    );
+    const v2 = useChartsV2();
+    const merged = useMemo(() => {
+        const out = deepMerge(baseOptions as Plain, {
+            ...(options as Plain),
+            chart: { ...((options?.chart ?? {}) as Plain), type },
+        }) as ApexOptions;
+        // v2: Apex animates from JS, so the CSS media query never reaches it.
+        if (v2 && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            out.chart = { ...out.chart, animations: { enabled: false } };
+        }
+        return out;
+    }, [options, type, v2]);
 
     const reserved = typeof height === "number" ? height : undefined;
 
@@ -88,7 +96,11 @@ function ApexChartInner({
         // The placeholder overlays rather than stacks: for one frame after Apex
         // draws, both are mounted, and a skeleton that took its own row would
         // make the card twice as tall for exactly that frame.
-        <div style={{ position: "relative", minWidth: 0, minHeight: reserved }}>
+        <div
+            style={{ position: "relative", minWidth: 0, minHeight: reserved }}
+            role={v2 && ariaLabel ? "img" : undefined}
+            aria-label={v2 ? ariaLabel : undefined}
+        >
             {!ready && (
                 <div className="absolute inset-0" aria-hidden>
                     <ChartSkeleton height={reserved ?? 320} />

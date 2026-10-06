@@ -14,6 +14,7 @@ import {
     MovimientosSearchTrigger,
 } from "@/components/movimientos/MovimientosSearchTrigger";
 import { useTimeWindow } from "@/components/TimeWindowProvider";
+import { ChartsV2Toggle } from "@/components/ChartsV2Toggle";
 import type { Period } from "@/lib/metrics";
 import type { TimeWindow, WindowBounds } from "@/lib/window";
 
@@ -136,6 +137,7 @@ export function AppChrome({
                     onUploaded={uploaded}
                 />
                 <LecturaHost />
+                <ChartsV2Toggle />
             </AppDataContext.Provider>
         </AppShell>
     );
