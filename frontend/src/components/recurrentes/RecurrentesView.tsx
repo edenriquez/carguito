@@ -33,6 +33,7 @@ const FREQUENCY_LABELS: Record<RecurringItem["frequency"], string> = {
     biweekly: "Quincenal",
     monthly: "Mensual",
     bimonthly: "Bimestral",
+    semiannual: "Semestral",
     yearly: "Anual",
 };
 

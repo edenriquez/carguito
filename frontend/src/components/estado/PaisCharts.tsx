@@ -32,11 +32,13 @@ export function RubrosChart({ rows, decile, decileLabel, highlight }: {
                 <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: colors.signal }} />Tú</span>
                 <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: colors.graphite }} />Hogar del decil {decileLabel}</span>
             </div>
-            <div className="space-y-2">
+            {/* Two columns when the card has the row to itself: ranked top to
+                bottom, then on to the second column. */}
+            <div className="lg:columns-2 lg:gap-x-10">
                 {rows.map((r, i) => {
                     const on = r.rubro === highlight;
                     return (
-                        <div key={r.rubro} {...bind(`${RUBRO_LABELS[r.rubro]} · tú ${mxn(r.amount)} al mes · decil ${decileLabel} ${mxn(rubroPesos(r.rubro, decile))} al mes`)}>
+                        <div key={r.rubro} className="mb-2 break-inside-avoid" {...bind(`${RUBRO_LABELS[r.rubro]} · tú ${mxn(r.amount)} al mes · decil ${decileLabel} ${mxn(rubroPesos(r.rubro, decile))} al mes`)}>
                             <div className="flex items-baseline justify-between gap-3 text-label">
                                 <span className={cn("min-w-0 truncate", on ? "font-medium text-ink" : "text-graphite")}>{RUBRO_LABELS[r.rubro]}</span>
                                 <span className="shrink-0 tabular">

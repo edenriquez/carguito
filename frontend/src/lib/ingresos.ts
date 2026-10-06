@@ -172,6 +172,7 @@ function inferCadence(txs: Transaction[]): Frequency | null {
     if (med >= 12 && med <= 18) return "biweekly";
     if (med >= 26 && med <= 35) return "monthly";
     if (med >= 42 && med <= 80) return "bimonthly";
+    if (med >= 160 && med <= 200) return "semiannual";
     return null;
 }
 
@@ -180,6 +181,7 @@ const CADENCE_DAYS: Record<Frequency, number> = {
     biweekly: 14,
     monthly: 30,
     bimonthly: 60,
+    semiannual: 182,
     yearly: 365,
 };
 
@@ -194,6 +196,9 @@ function stepForward(d: Date, frequency: Frequency): Date {
             break;
         case "bimonthly":
             next.setMonth(next.getMonth() + 2);
+            break;
+        case "semiannual":
+            next.setMonth(next.getMonth() + 6);
             break;
         case "yearly":
             next.setFullYear(next.getFullYear() + 1);

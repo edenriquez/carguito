@@ -44,6 +44,9 @@ _FREQUENCY_WINDOWS: list[tuple[str, float, float]] = [
     # 6–8 weeks: a dentist, a bimestral utility that landed early.
     # Gap below 42 is deliberate — 40 days is still not monthly.
     ("bimonthly", 42, 80),
+    # ~6 months: a policy, a predial installment. The gap under 160 is
+    # deliberate — 90 days is quarterly, not semestral.
+    ("semiannual", 160, 200),
     ("yearly", 350, 380),
 ]
 
@@ -131,7 +134,7 @@ class RecurringGroup:
     key: str
     label: str
     occurrences: int
-    frequency: str  # weekly | biweekly | monthly | bimonthly | yearly
+    frequency: str  # weekly | biweekly | monthly | bimonthly | semiannual | yearly
     typical_amount: Decimal
     #: What this series costs per 30 days, for ranking and for the total load.
     monthly_equivalent: Decimal

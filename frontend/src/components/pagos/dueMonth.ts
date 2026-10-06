@@ -5,6 +5,7 @@
  */
 
 import type { RecurringItem } from "@/lib/api";
+import { matchMerchant } from "@/lib/merchants";
 import { parsePeriodKey } from "@/lib/metrics";
 import { futureCharges, isStale, ledgerEnd, monthKeyOf, today } from "@/components/recurrentes/projection";
 
@@ -119,6 +120,41 @@ export function urgencyOf(date: Date, asOf: Date = today()): Urgency | null {
 
 const BACK_MONTHS = 12;
 
+/**
+ * Places you walk into. The ticket changes every visit, and a handful of
+ * them can still land inside a bimonthly window — that is not a bill.
+ * Same slugs as the merchant list.
+ */
+const STORE_SLUGS = new Set([
+    "oxxo",
+    "seven-eleven",
+    "bodega-aurrera",
+    "walmart",
+    "soriana",
+    "chedraui",
+    "costco",
+    "heb",
+]);
+
+function isStoreVisit(item: RecurringItem): boolean {
+    const slug = matchMerchant(item.label) ?? matchMerchant(item.key);
+    return slug !== null && STORE_SLUGS.has(slug);
+}
+
+/**
+ * A payment to anticipate, not a store the user happens to visit.
+ *
+ * `amount_stable` is the rule: a subscription barely moves charge to charge.
+ * A bill can still move — CFE, a semestral policy — when the cadence itself
+ * is the bill (bimonthly, semiannual). A store (OXXO, Walmart, Bodega) is
+ * neither, even when a few visits happen to sit on that cadence.
+ */
+export function isScheduledPayment(item: RecurringItem): boolean {
+    if (isStoreVisit(item)) return false;
+    if (item.amount_stable) return true;
+    return item.frequency === "bimonthly" || item.frequency === "semiannual";
+}
+
 export function buildDueMonth(
     items: RecurringItem[],
     month: Date,
@@ -131,7 +167,7 @@ export function buildDueMonth(
     const earliest = shiftMonth(current, -(BACK_MONTHS - 1));
     const ledgerAsOf = items.length ? ledgerEnd(items) : asOf;
 
-    const active = items.filter((i) => !isStale(i, ledgerAsOf));
+    const active = items.filter((i) => isScheduledPayment(i) && !isStale(i, ledgerAsOf));
 
     const registeredByIso = new Map<string, DueLine[]>();
     const dueByIso = new Map<string, DueLine[]>();

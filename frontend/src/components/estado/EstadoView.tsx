@@ -180,9 +180,10 @@ export function EstadoView({
 
     // 3 · Día del mes
     const shares = stretches(reading.byDay);
-    const diasTitle = shares[0] < 0.25
+    const diasFocus = shares[0] < 0.25 ? "late" : shares[0] > 0.45 ? "early" : null;
+    const diasTitle = diasFocus === "late"
         ? "Gastas más en la segunda mitad del mes"
-        : shares[0] > 0.45
+        : diasFocus === "early"
           ? "Gastas más al inicio del mes"
           : "Tu gasto se reparte a lo largo del mes";
 
@@ -349,58 +350,55 @@ export function EstadoView({
                 </div>
             </section>
 
+            {/* The decil strip leads the section across the whole row: the
+                readings after it come in pairs, and the rubros, ten rows
+                tall, close it on a row of their own. */}
             <Section title="Contra el país">
-                <Card title={`Gastas como un hogar del decil ${DECILE_LABELS[decileIndex(spendP)]}`} foot={decilFoot}>
-                    <DecilChart income={income} spendP={spendP} incomeP={incomeP} equivalent={equivalent} />
+                <Card
+                    layout="feature"
+                    title={`Gastas como un hogar del decil ${DECILE_LABELS[decileIndex(spendP)]}`}
+                    foot={decilFoot}
+                    aside={
+                        <Figures
+                            items={[
+                                { label: "Tu gasto al mes", value: mxn(avg), note: `promedio de ${held.length} ${held.length === 1 ? "mes" : "meses"}`, on: true },
+                                {
+                                    label: `Un hogar del decil ${DECILE_LABELS[decileIndex(spendP)]}`,
+                                    value: mxn(ENIGH_MONTHLY.gasto[decileIndex(spendP)]!),
+                                    note: `gasta al mes; gana ${mxn(ENIGH_MONTHLY.ingreso[decileIndex(spendP)]!)}`,
+                                },
+                                { label: "Gastas como quien gana", value: `~${mxn(equivalent)}`, note: "al mes, según la ENIGH" },
+                                income
+                                    ? {
+                                          label: "Tu ingreso",
+                                          value: mxn(income),
+                                          note: income >= equivalent ? `${mxn(income - equivalent)} más que eso` : `${mxn(equivalent - income)} menos que eso`,
+                                      }
+                                    : { label: "Gastas más que", value: `~${Math.round(spendP)}%`, note: "de los hogares del país" },
+                            ]}
+                        />
+                    }
+                >
+                    <DecilChart spend={avg} spendP={spendP} income={income} incomeP={incomeP} />
                 </Card>
 
-                {bal ? (
+                {bal && (
                     <Card
                         title={bal.factor > 1 ? `Sale $${bal.factor.toFixed(2)} por cada $1 que entra` : `Salen $${bal.factor.toFixed(2)} de cada $1 que entra`}
                         foot={`${bal.gap > 0 ? `En ${bal.months} meses faltaron ~${mxn(bal.gap)}.` : `En ${bal.months} meses te sobraron ~${mxn(-bal.gap)}.`} El hogar promedio en México gasta $${NATIONAL_SPEND_RATIO.toFixed(2)} de cada peso.`}
                     >
                         <BalanceChart months={reading.months} income={income!} />
                     </Card>
-                ) : (
-                    <AskIncome title="Cuánto sale por cada peso que entra" onAsk={() => setEditing(true)}>
-                        Con tu ingreso, esta lectura dice cuántos meses gastaste más de lo que entró y cuánto faltó.
-                    </AskIncome>
                 )}
 
-                {bal && incomeD !== null && decileRatio !== null ? (
+                {bal && incomeD !== null && decileRatio !== null && (
                     <Card
                         title={`Los hogares de tu decil gastan $${decileRatio.toFixed(2)} de cada peso; tú $${bal.factor.toFixed(2)}`}
                         foot={`Decil ${DECILE_LABELS[incomeD]} por tu ingreso de ${mxn(income!)}. El decil I gasta $${ENIGH_SPEND_RATIO[0]!.toFixed(2)} de cada peso, más de lo que declara; el X, $${ENIGH_SPEND_RATIO[9]!.toFixed(2)}.`}
                     >
                         <DecilRatioChart ratios={ENIGH_SPEND_RATIO} decile={incomeD} factor={bal.factor} />
                     </Card>
-                ) : (
-                    <AskIncome title="Cuánto gastan de cada peso los hogares que ganan como tú" onAsk={() => setEditing(true)}>
-                        Con tu ingreso, esta lectura pone tu factor de gasto junto al de los hogares de tu mismo decil.
-                    </AskIncome>
                 )}
-
-                <Card
-                    title={rubroTitle}
-                    foot={
-                        <>
-                            {incomeD !== null ? "Decil por tu ingreso" : "Decil por tu gasto, hasta que digas cuánto entra"}; rubros de la ENIGH 2024, por hogar.
-                            {unmappedShare > 0 && (
-                                <>
-                                    {" "}
-                                    {pct(unmappedShare)} de tu gasto ({rubros.unmapped.names.slice(0, 3).join(", ")}
-                                    {rubros.unmapped.names.length > 3 ? "…" : ""}) no cae en ningún rubro y quedó fuera.
-                                </>
-                            )}
-                        </>
-                    }
-                >
-                    {rubroTop ? (
-                        <RubrosChart rows={rubros.rows} decile={compareD} decileLabel={DECILE_LABELS[compareD]!} highlight={rubroTop.rubro} />
-                    ) : (
-                        <p className="text-body-sm text-graphite">Clasifica tus cargos en comida, vivienda, transporte o salud y esta lectura los compara con los hogares de tu decil.</p>
-                    )}
-                </Card>
 
                 <Card
                     title={
@@ -434,62 +432,92 @@ export function EstadoView({
                     )}
                 </Card>
                 )}
+
+                <Card
+                    layout="full"
+                    title={rubroTitle}
+                    foot={
+                        <>
+                            {incomeD !== null ? "Decil por tu ingreso" : "Decil por tu gasto, hasta que digas cuánto entra"}; rubros de la ENIGH 2024, por hogar.
+                            {unmappedShare > 0 && (
+                                <>
+                                    {" "}
+                                    {pct(unmappedShare)} de tu gasto ({rubros.unmapped.names.slice(0, 3).join(", ")}
+                                    {rubros.unmapped.names.length > 3 ? "…" : ""}) no cae en ningún rubro y quedó fuera.
+                                </>
+                            )}
+                        </>
+                    }
+                >
+                    {rubroTop ? (
+                        <RubrosChart rows={rubros.rows} decile={compareD} decileLabel={DECILE_LABELS[compareD]!} highlight={rubroTop.rubro} />
+                    ) : (
+                        <p className="text-body-sm text-graphite">Clasifica tus cargos en comida, vivienda, transporte o salud y esta lectura los compara con los hogares de tu decil.</p>
+                    )}
+                </Card>
             </Section>
 
             <Section title="Con tu ingreso">
-                {payday && income ? (
-                    <Card
-                        title={payday.crossDay !== null ? `El día ${payday.crossDay} ya gastaste todo lo que entra` : `Tu ingreso alcanza todo el mes: al cierre te quedan ~${mxn(payday.leftover)}`}
-                        foot={`Mes promedio sobre ${complete.length} ${complete.length === 1 ? "mes completo" : "meses completos"}. ${ranOut === 0 ? "En ninguno se acabó el dinero antes del último día." : `En ${ranOut} de ${complete.length} el dinero se acabó antes del último día.`}${skippedNote}`}
-                    >
-                        <DiaCeroChart payday={payday} income={income} />
-                    </Card>
-                ) : income ? (
-                    <Card title="Qué día del mes se acaba tu ingreso" foot={`El registro no cubre ningún mes completo todavía.${skippedNote}`}>
-                        <p className="text-body-sm text-graphite">Con un mes entero de cargos, esta lectura sigue lo gastado día a día y marca el día en que ya no queda nada.</p>
-                    </Card>
+                {!income ? (
+                    <AskIncome onAsk={() => setEditing(true)} />
                 ) : (
-                    <AskIncome title="Qué día del mes se acaba tu ingreso" onAsk={() => setEditing(true)}>
-                        Con tu ingreso, esta lectura sigue lo gastado día a día y marca el día en que ya no queda nada.
-                    </AskIncome>
-                )}
+                    <>
+                        {payday ? (
+                            <Card
+                                title={payday.crossDay !== null ? `El día ${payday.crossDay} ya gastaste todo lo que entra` : `Tu ingreso alcanza todo el mes: al cierre te quedan ~${mxn(payday.leftover)}`}
+                                foot={`Mes promedio sobre ${complete.length} ${complete.length === 1 ? "mes completo" : "meses completos"}. ${ranOut === 0 ? "En ninguno se acabó el dinero antes del último día." : `En ${ranOut} de ${complete.length} el dinero se acabó antes del último día.`}${skippedNote}`}
+                            >
+                                <DiaCeroChart payday={payday} income={income} />
+                            </Card>
+                        ) : (
+                            <Card title="Qué día del mes se acaba tu ingreso" foot={`El registro no cubre ningún mes completo todavía.${skippedNote}`}>
+                                <p className="text-body-sm text-graphite">Con un mes entero de cargos, esta lectura sigue lo gastado día a día y marca el día en que ya no queda nada.</p>
+                            </Card>
+                        )}
 
-                {committed && income ? (
-                    series.loading ? (
-                        <CardSkeleton />
-                    ) : committed.rows.length === 0 ? (
-                        <AskFijos />
-                    ) : (
-                        <Card
-                            title={`${mxn(committed.fijos)} de tus ${mxn(income)} ya están apartados antes del día 1`}
-                            foot={`${pct(committed.share)} de tu ingreso son ${committed.rows.length} ${committed.rows.length === 1 ? "fijo" : "fijos"}. Lo variable del mes promedio fue ${mxn(committed.variable)}; ${committed.margin >= 0 ? `te quedan ${mxn(committed.margin)}` : `faltaron ${mxn(-committed.margin)}`}.`}
-                        >
-                            <ComprometidoChart committed={committed} income={income} />
-                        </Card>
-                    )
-                ) : (
-                    <AskIncome title="Cuánto de tu ingreso ya está comprometido antes del día 1" onAsk={() => setEditing(true)}>
-                        Con tu ingreso y tus fijos, esta lectura dice qué parte del mes ya está apartada antes de empezar.
-                    </AskIncome>
-                )}
+                        {series.loading ? (
+                            <CardSkeleton />
+                        ) : !committed || committed.rows.length === 0 ? (
+                            <AskFijos />
+                        ) : (
+                            <Card
+                                title={`${mxn(committed.fijos)} de tus ${mxn(income)} ya están apartados antes del día 1`}
+                                foot={`${pct(committed.share)} de tu ingreso son ${committed.rows.length} ${committed.rows.length === 1 ? "fijo" : "fijos"}. Lo variable del mes promedio fue ${mxn(committed.variable)}; ${committed.margin >= 0 ? `te quedan ${mxn(committed.margin)}` : `faltaron ${mxn(-committed.margin)}`}.`}
+                            >
+                                <ComprometidoChart committed={committed} income={income} />
+                            </Card>
+                        )}
 
-                {income && movable ? (
-                    <Card
-                        title={`${movable.name} te costó ${Math.round(movable.amount / hourValue)} horas de trabajo`}
-                        foot={`Con ${mxn(income)}/mes tu hora vale ~${mxn(hourValue)}.`}
-                    >
-                        <HorasChart rows={horasRows} hourValue={hourValue} highlight={movable.name} />
-                    </Card>
-                ) : (
-                    <AskIncome title="Cuántas horas de trabajo cuesta lo que compras" onAsk={() => setEditing(true)}>
-                        Con tu ingreso, cada categoría se lee en horas de tu trabajo y no en pesos.
-                    </AskIncome>
+                        {movable && (
+                            <Card
+                                layout="feature"
+                                title={`${movable.name} te costó ${Math.round(movable.amount / hourValue)} horas de trabajo`}
+                                foot={`Las horas salen de tu ingreso de ${mxn(income)} entre ${HOURS_PER_MONTH} horas de trabajo al mes.`}
+                                aside={
+                                    <Figures
+                                        items={[
+                                            { label: movable.name, value: `${Math.round(movable.amount / hourValue)} h`, note: mxn(movable.amount), on: true },
+                                            { label: "En semanas de 40 h", value: (movable.amount / hourValue / 40).toFixed(1), note: "de trabajo completo" },
+                                            {
+                                                label: `Estas ${horasRows.length} categorías`,
+                                                value: `${Math.round(horasRows.reduce((s, r) => s + r.amount, 0) / hourValue)} h`,
+                                                note: mxn(horasRows.reduce((s, r) => s + r.amount, 0)),
+                                            },
+                                            { label: "Tu hora vale", value: `~${mxn(hourValue)}`, note: `con ${mxn(income)} al mes` },
+                                        ]}
+                                    />
+                                }
+                            >
+                                <HorasChart rows={horasRows} hourValue={hourValue} highlight={movable.name} />
+                            </Card>
+                        )}
+                    </>
                 )}
             </Section>
 
             <Section title="En el tiempo">
                 <Card title={diasTitle} foot={`${Math.round((1 - shares[0]) * 100)}% de tu gasto cae después del día 10.`}>
-                    <DiasChart byDay={reading.byDay} shares={shares} />
+                    <DiasChart byDay={reading.byDay} shares={shares} focus={diasFocus} />
                 </Card>
 
                 <Card title={weTitle} foot="Sábado y domingo son el 29% de los días.">
@@ -584,10 +612,23 @@ export function EstadoView({
                 </Card>
 
                 <Card
+                    layout="feature"
                     title={habitTitle}
                     foot={habitAfter.length === 0
                         ? "Desde el segundo mes, cada lugar se compara con los que ya habías pagado."
-                        : `Desde ${name(habitAfter[0]!.key)} entraste a ${habit.freshMerchants} ${habit.freshMerchants === 1 ? "lugar nuevo" : "lugares nuevos"}; te costaron ${mxn(habit.freshAmount)}.${cash.count > 0 ? " El efectivo no cuenta: no tiene lugar." : ""}`}
+                        : `Un lugar es nuevo el mes en que pagas ahí por primera vez; ${name(habit.months[0]!.key)} es el mes base.${cash.count > 0 ? " El efectivo no cuenta: no tiene lugar." : ""}`}
+                    aside={
+                        habitAfter.length > 0 && (
+                            <Figures
+                                items={[
+                                    { label: "En lugares conocidos", value: pct(habit.knownShare), note: `desde ${name(habitAfter[0]!.key)}`, on: true },
+                                    { label: "Lugares nuevos", value: String(habit.freshMerchants), note: `en ${habitAfter.length} ${habitAfter.length === 1 ? "mes" : "meses"}` },
+                                    { label: "Gastado en nuevos", value: mxn(habit.freshAmount), note: `${pct(1 - habit.knownShare)} de tu gasto` },
+                                    { label: "Al mes en nuevos", value: mxn(habit.freshAmount / habitAfter.length), note: "en promedio" },
+                                ]}
+                            />
+                        )
+                    }
                 >
                     <HabitualChart months={habit.months} />
                 </Card>
@@ -595,6 +636,7 @@ export function EstadoView({
 
             <Section title="Lo que no cuadra">
                 <Card
+                    layout="full"
                     title={flagged.length === 0 ? "Ningún cargo fuera de lo común" : flagged.length === 1 ? "1 cargo que no cuadra" : `${flagged.length} cargos que no cuadran`}
                     foot="Tomin no adivina: tú dices si son tuyos."
                 >
@@ -633,16 +675,68 @@ export function EstadoView({
     );
 }
 
+/**
+ * A card's three rows — title, proof, foot — from `lg` up are rows of the
+ * section's grid, so two cards side by side share them: a title that wraps
+ * to two lines pushes its neighbour's chart down with it, and both foot rules
+ * sit on one line.
+ */
+const CARD = "card flex min-w-0 flex-col lg:row-span-3 lg:grid lg:grid-rows-subgrid lg:gap-y-0";
+
+/**
+ * How a card sits in its section's grid. `pair` shares its rows with the card
+ * beside it. A card that has the row to itself is `feature` when it holds a
+ * chart — the SVG charts are drawn for half a row and would scale their type
+ * up across a whole one, so the chart keeps that width on the right and the
+ * words take the left — or `full` when it holds a list that wants the width.
+ */
+type CardLayout = "pair" | "feature" | "full";
+
+const LAYOUT: Record<CardLayout, { card: string; body: string; foot: string }> = {
+    pair: { card: CARD, body: "mt-5 flex-1", foot: "mt-5" },
+    feature: {
+        card: "card flex min-w-0 flex-col lg:col-span-2 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:grid-rows-[auto_1fr_auto] lg:gap-x-12",
+        body: "mt-5 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:mt-0 lg:self-center",
+        foot: "mt-5 lg:col-start-1 lg:row-start-3",
+    },
+    full: { card: "card flex min-w-0 flex-col lg:col-span-2", body: "mt-5 flex-1", foot: "mt-5" },
+};
+
 /** A reading card: its title is the finding, its foot says what it means. The
- *  chart inside plays once, the first time the card is on screen. */
-function Card({ title, foot, children }: { title: string; foot: ReactNode; children: ReactNode }) {
+ *  chart inside plays once, the first time the card is on screen. A feature
+ *  card's `aside` holds the reading's figures under the title, in the column
+ *  the chart leaves beside it. */
+function Card({ title, foot, children, aside, layout = "pair" }: {
+    title: string;
+    foot: ReactNode;
+    children: ReactNode;
+    aside?: ReactNode;
+    layout?: CardLayout;
+}) {
     const { ref, seen } = useReveal<HTMLElement>();
+    const l = LAYOUT[layout];
     return (
-        <section ref={ref} data-play={seen} className="card flex min-w-0 flex-col">
+        <section ref={ref} data-play={seen} className={l.card}>
             <h3 className="text-body-lg font-medium text-ink">{title}</h3>
-            <div className="mt-5 flex-1">{children}</div>
-            <p className="mt-5 border-t border-mist pt-4 text-body-sm text-graphite">{foot}</p>
+            {aside && <div className="mt-5 lg:col-start-1 lg:row-start-2 lg:self-center">{aside}</div>}
+            <div className={l.body}>{children}</div>
+            <div className={cn("border-t border-mist pt-4 text-body-sm text-graphite", l.foot)}>{foot}</div>
         </section>
+    );
+}
+
+/** The figures a feature card reads from, two by two. */
+function Figures({ items }: { items: { label: string; value: string; note: string; on?: boolean }[] }) {
+    return (
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5">
+            {items.map((f) => (
+                <div key={f.label} className="min-w-0">
+                    <dt className="text-label text-graphite">{f.label}</dt>
+                    <dd className={cn("tabular mt-1 truncate text-metric-sm font-normal", f.on ? "text-edge" : "text-ink")}>{f.value}</dd>
+                    <dd className="mt-0.5 text-label text-ash">{f.note}</dd>
+                </div>
+            ))}
+        </dl>
     );
 }
 
@@ -660,28 +754,49 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
  *  instead of guessing which charges are fixed. */
 function AskFijos() {
     return (
-        <section className="card flex min-w-0 flex-col">
-            <h3 className="text-body-lg font-medium text-ink">Cuánto de tu ingreso ya está comprometido antes del día 1</h3>
-            <p className="mt-3 flex-1 text-body-sm text-graphite">
+        <Card
+            title="Cuánto de tu ingreso ya está comprometido antes del día 1"
+            foot={<Link href="/plan" className="text-edge hover:underline">Fijar mis gastos fijos en Plan</Link>}
+        >
+            <p className="text-body-sm text-graphite">
                 Fija en Plan los cargos que llegan cada mes y esta lectura dice qué parte de lo que entra ya está apartada antes de empezar.
             </p>
-            <div className="mt-5 border-t border-mist pt-4">
-                <Link href="/plan" className="text-body-sm text-edge hover:underline">Fijar mis gastos fijos en Plan</Link>
-            </div>
-        </section>
+        </Card>
     );
 }
 
-/** The card a reading shows when it needs the income nobody has given yet. */
-function AskIncome({ title, children, onAsk }: { title: string; children: ReactNode; onAsk: () => void }) {
+/** The readings that need what comes in. Income is never inferred, so until
+ *  it is given they are one card that names them, not five that each ask. */
+const INCOME_READINGS = [
+    { title: "Cuánto sale por cada peso que entra", body: "Cuántos meses gastaste más de lo que entró y cuánto faltó." },
+    { title: "Cuánto gastan de cada peso los hogares que ganan como tú", body: "Tu factor de gasto junto al de los hogares de tu mismo decil." },
+    { title: "Qué día del mes se acaba tu ingreso", body: "Lo gastado día a día, y el día en que ya no queda nada." },
+    { title: "Cuánto de tu ingreso ya está comprometido antes del día 1", body: "Qué parte del mes ya está apartada antes de empezar, con tus fijos." },
+    { title: "Cuántas horas de trabajo cuesta lo que compras", body: "Cada categoría en horas de tu trabajo y no en pesos." },
+] as const;
+
+function AskIncome({ onAsk }: { onAsk: () => void }) {
     return (
-        <section className="card flex min-w-0 flex-col">
-            <h3 className="text-body-lg font-medium text-ink">{title}</h3>
-            <p className="mt-3 flex-1 text-body-sm text-graphite">{children}</p>
-            <div className="mt-5 border-t border-mist pt-4">
-                <Button size="sm" variant="secondary" onClick={onAsk}>Agregar mi ingreso</Button>
-            </div>
-        </section>
+        <Card
+            layout="feature"
+            title="Cinco lecturas esperan tu ingreso"
+            foot={<Button size="sm" variant="secondary" onClick={onAsk}>Agregar mi ingreso</Button>}
+            aside={
+                <p className="text-body-sm text-graphite">
+                    Tomin no adivina cuánto entra. Escríbelo una vez, o etiqueta tus depósitos de nómina en Plan, y estas
+                    lecturas se calculan con tus cargos de los últimos {SPAN_MONTHS} meses.
+                </p>
+            }
+        >
+            <ul className="space-y-3">
+                {INCOME_READINGS.map((r) => (
+                    <li key={r.title} className="min-w-0">
+                        <p className="text-body-sm font-medium text-ink">{r.title}</p>
+                        <p className="text-label text-graphite">{r.body}</p>
+                    </li>
+                ))}
+            </ul>
+        </Card>
     );
 }
 
@@ -747,7 +862,7 @@ function IncomeLine({ income, source, editing, onEdit, onSave }: {
                     <span className="tabular text-ink">{mxn(income)}/mes</span> ·{" "}
                 </>
             ) : (
-                <>Sin ingreso todavía: tres lecturas lo necesitan · </>
+                <>Sin ingreso todavía: cinco lecturas lo necesitan · </>
             )}
             <button type="button" className="text-edge hover:underline" onClick={() => onEdit(true)}>
                 {income ? "Cambiar" : "Agregar"}
@@ -761,10 +876,10 @@ function IncomeLine({ income, source, editing, onEdit, onSave }: {
  *  says "no tienes" and then fills in would be a lie for a second. */
 function CardSkeleton() {
     return (
-        <section className="card flex min-w-0 flex-col gap-4" aria-busy>
+        <section className={CARD} aria-busy>
             <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-[200px] w-full" />
-            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="mt-5 h-[200px] w-full" />
+            <Skeleton className="mt-5 h-4 w-2/3" />
         </section>
     );
 }

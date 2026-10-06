@@ -174,6 +174,37 @@ def test_cfe_product_lines_and_a_fee_are_one_bimonthly_bill():
     assert g.label == "Pago Luz"
 
 
+def test_semiannual_policy_is_a_bill_even_when_the_amount_moves():
+    """A semestral policy is a payment, not a store visit. The amount may
+    move (renewal vs adjustment) and the cadence is still the commitment."""
+    txs = [
+        _tx(date(2024, 1, 15), "SEGURO AUTOS GNP", "2100"),
+        _tx(date(2024, 7, 15), "SEGURO AUTOS GNP", "4200"),
+        _tx(date(2025, 1, 14), "SEGURO AUTOS GNP", "9000"),
+    ]
+    groups = RecurrenceService().detect(txs)
+    assert len(groups) == 1
+    g = groups[0]
+    assert g.frequency == "semiannual"
+    assert g.amount_stable is False
+
+
+def test_weekly_store_with_a_swinging_ticket_still_has_a_rhythm():
+    """OXXO every week is a habit the detector can see. Pagos is what
+    leaves it off the calendar: the amount is not stable and the cadence
+    is not a bill cycle."""
+    txs = [
+        _tx(date(2024, 1, 2), "OXXO SUC 4412", "86"),
+        _tx(date(2024, 1, 9), "OXXO SUC 8891", "214"),
+        _tx(date(2024, 1, 16), "OXXO SUC 1001", "47"),
+        _tx(date(2024, 1, 23), "OXXO SUC 2204", "163"),
+    ]
+    groups = RecurrenceService().detect(txs)
+    assert len(groups) == 1
+    assert groups[0].frequency == "weekly"
+    assert groups[0].amount_stable is False
+
+
 def test_biweekly_cadence():
     txs = [
         _tx(date(2024, 1, 1), "Prestamo quincenal", "750"),

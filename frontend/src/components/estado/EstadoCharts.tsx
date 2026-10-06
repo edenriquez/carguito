@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { colors } from "@/design/tokens";
 import { cn } from "@/lib/cn";
 import { mxn } from "@/lib/format";
-import { DECILE_LABELS, ENIGH_MONTHLY, decileIndex } from "@/lib/enigh";
+import { DECILE_LABELS, ENIGH_MONTHLY, ENIGH_YEAR, decileIndex } from "@/lib/enigh";
 import { TIER_LABELS, TIER_ORDER, type Leaf, type Tier, type TierSlice } from "@/lib/lecturaEstado";
 import { monthKeyToDate, type MonthKey } from "@/lib/porMes";
 import { useChartTip } from "./useChartTip";
@@ -24,51 +24,71 @@ export const TEXT = { fontSize: 11, fill: colors.graphite } as const;
 
 /* ------------------------------------------------------------------ 1 · Decil */
 
-/** A 0–100 percentile on the strip's x axis. */
-const stripX = (p: number) => 10 + (p / 100) * 580;
-
-export function DecilChart({ income, spendP, incomeP, equivalent }: {
-    income: number | null;
+/**
+ * The ENIGH itself, decile by decile: what a household spends a month (the
+ * bar) and what it takes in (under the bar), with the user's own monthly
+ * spend drawn across all ten. Where that line meets the bars is the claim in
+ * the title — the decile is read off the survey, not asserted beside it.
+ * With an income, its decile is marked under the axis, so the two readings
+ * of "where am I" sit on the same chart.
+ */
+export function DecilChart({ spend, spendP, income, incomeP }: {
+    spend: number;
     spendP: number;
+    income: number | null;
     incomeP: number | null;
-    equivalent: number;
 }) {
     const { box, bind, node } = useChartTip();
     const spendD = decileIndex(spendP);
-    const xs = stripX(spendP);
-    const xi = incomeP === null ? null : stripX(incomeP);
+    const incomeD = incomeP === null ? null : decileIndex(incomeP);
+    const base = 168, top = 24;
+    const max = Math.max(spend, ...ENIGH_MONTHLY.gasto) * 1.1;
+    const y = (v: number) => base - ((base - top) * Math.min(v, max)) / max;
+    // A gutter at the left names the two rows of figures once, so each column
+    // carries only its numbers.
+    const left = 46, slot = (600 - left) / 10, bw = 32;
+    const cx = (i: number) => left + i * slot + slot / 2;
+    const ys = y(spend);
     return (
         <div ref={box} className="relative">
-            <svg viewBox="0 0 600 132" className="w-full overflow-visible" role="img" aria-label={`Tu gasto cae en el decil ${DECILE_LABELS[spendD]}`}>
+            <p className="mb-2 text-label text-ash">Gasto al mes por hogar, por decil de ingreso · ENIGH {ENIGH_YEAR}</p>
+            <svg viewBox="0 0 600 228" className="w-full overflow-visible" role="img" aria-label={`Tu gasto de ${mxn(spend)} al mes cae en el decil ${DECILE_LABELS[spendD]}`}>
                 {DECILE_LABELS.map((label, i) => {
-                    const a = stripX(i * 10) + 2, b = stripX(i * 10 + 10) - 2;
+                    const gasto = ENIGH_MONTHLY.gasto[i]!;
+                    const ingreso = ENIGH_MONTHLY.ingreso[i]!;
                     const on = i === spendD;
+                    const x = cx(i) - bw / 2;
                     return (
-                        <g key={label} {...bind(`Decil ${label} · ingreso ${mxn(ENIGH_MONTHLY.ingreso[i]!)}/mes · gasto ${mxn(ENIGH_MONTHLY.gasto[i]!)}/mes`)}>
-                            <rect x={a} y={64} width={b - a} height={14} rx={2} fill={on ? colors.wash : colors.fog} />
-                            <text x={(a + b) / 2} y={98} textAnchor="middle" style={{ ...TEXT, fill: on ? colors.edge : colors.graphite }}>{label}</text>
-                            <text x={(a + b) / 2} y={114} textAnchor="middle" style={{ ...TEXT, fill: colors.ash }}>{k(ENIGH_MONTHLY.ingreso[i]!)}</text>
+                        <g key={label} {...bind(`Decil ${label} · gasta ${mxn(gasto)} al mes · ingresa ${mxn(ingreso)} al mes`)}>
+                            <rect x={cx(i) - slot / 2} y={top} width={slot} height={base - top} fill="transparent" />
+                            <rect className="lx-grow" style={{ transitionDelay: `${i * 60}ms` }} x={x} y={y(gasto)} width={bw} height={base - y(gasto)} rx={2} fill={on ? colors.signal : colors.muted} />
+                            {incomeD === i && <circle cx={cx(i)} cy={base + 8} r={2.5} fill={colors.soot} />}
+                            <text x={cx(i)} y={base + 24} textAnchor="middle" style={{ ...TEXT, fill: on ? colors.edge : colors.graphite, fontWeight: on ? 500 : 400 }}>{label}</text>
+                            <text x={cx(i)} y={base + 39} textAnchor="middle" style={{ ...TEXT, fill: on ? colors.edge : colors.graphite }}>{k(gasto)}</text>
+                            <text x={cx(i)} y={base + 54} textAnchor="middle" style={{ ...TEXT, fill: colors.ash }}>{k(ingreso)}</text>
                         </g>
                     );
                 })}
-                {xi !== null && (
-                    <>
-                        <rect className="lx-growx lx-fade" style={{ transitionDelay: "900ms" }} x={Math.min(xi, xs)} y={64} width={Math.abs(xs - xi)} height={14} fill={colors.signal} opacity={0.3} />
-                        <line x1={xi} x2={xi} y1={36} y2={62} stroke={colors.graphite} />
-                        <circle cx={xi} cy={71} r={7} fill={colors.paper} stroke={colors.soot} strokeWidth={2} />
-                        <text x={xi} y={28} textAnchor={xi > xs ? "start" : "end"} dx={xi > xs ? -8 : 8} style={{ ...TEXT, fill: colors.ink, fontWeight: 500 }}>
-                            Ganas {mxn(income!)}
-                        </text>
-                    </>
-                )}
-                <g className="lx-slide" style={{ "--lx-from": `${(xi ?? xs) - xs}px` } as CSSProperties}>
-                    <line x1={xs} x2={xs} y1={14} y2={62} stroke={colors.signal} />
-                    <circle cx={xs} cy={71} r={7} fill={colors.signal} />
-                    <text x={xs} y={8} textAnchor={xs > 420 ? "end" : "middle"} style={{ ...TEXT, fill: colors.edge, fontWeight: 500 }}>
-                        Gastas como quien gana ~{mxn(equivalent)}
+                <text x={0} y={base + 24} style={{ ...TEXT, fill: colors.ash }}>Decil</text>
+                <text x={0} y={base + 39} style={{ ...TEXT, fill: colors.ash }}>Gasta</text>
+                <text x={0} y={base + 54} style={{ ...TEXT, fill: colors.ash }}>Gana</text>
+                {/* The figures sit under the axis, not on the bars: the user's
+                    line crosses the bars near their decile's top, and would run
+                    through a figure there. Its own label is at the left, where
+                    the bars are short. */}
+                <g className="lx-fade" style={{ transitionDelay: "800ms" }}>
+                    <line x1={left} x2={600} y1={ys} y2={ys} stroke={colors.signal} strokeDasharray="4 3" />
+                    <text x={left} y={ys - 6} style={{ ...TEXT, fill: colors.edge, fontWeight: 500 }}>
+                        Tú gastas {mxn(spend)}
                     </text>
                 </g>
             </svg>
+            {incomeD !== null && income !== null && (
+                <p className="mt-1 flex items-center gap-1.5 text-label text-graphite">
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-soot" />
+                    Tu ingreso de {mxn(income)} cae en el decil {DECILE_LABELS[incomeD]}
+                </p>
+            )}
             {node}
         </div>
     );
@@ -120,39 +140,74 @@ export function BalanceChart({ months, income }: {
 
 /* ------------------------------------------------------------- 3 · Día del mes */
 
-export function DiasChart({ byDay, shares }: { byDay: number[]; shares: [number, number, number] }) {
+const STRETCHES = [
+    { from: 1, to: 10 },
+    { from: 11, to: 20 },
+    { from: 21, to: 31 },
+] as const;
+
+/**
+ * A histogram of the month: one bar per day of the month, summed over the
+ * span, in the three stretches the title reads. The days the title is about
+ * are Signal — after the 10th when it says "la segunda mitad", up to it when
+ * it says "al inicio" — and with no lean, only the heaviest day is. The
+ * heaviest day carries its figure.
+ */
+export function DiasChart({ byDay, shares, focus }: {
+    byDay: number[];
+    shares: [number, number, number];
+    focus: "early" | "late" | null;
+}) {
     const { box, bind, node } = useChartTip();
     const max = Math.max(...byDay) || 1;
-    // Four steps of the stone ramp by how heavy the day was; the day with the
-    // most spend takes the Signal edge.
-    const step = (v: number) => (v === 0 ? colors.fog : v < max * 0.2 ? colors.mist : v < max * 0.45 ? colors.ash : colors.soot);
     const peak = byDay.indexOf(max);
+    const base = 128, top = 18;
+    const slot = 580 / byDay.length, bw = slot * 0.7;
+    const x = (i: number) => 10 + i * slot;
+    const h = (v: number) => ((base - top) * v) / max;
+    const on = (i: number) => (focus === "late" ? i >= 10 : focus === "early" ? i < 10 : i === peak);
     return (
         <div ref={box} className="relative">
-            <div className="grid grid-cols-11 gap-1.5">
-                {byDay.map((v, i) => (
-                    <div
-                        key={i}
-                        {...bind(`Día ${i + 1} · ${mxn(v)}`)}
-                        className={cn(
-                            "lx-fade flex h-7 items-center justify-center rounded-[3px] text-label tabular",
-                            i === peak && "ring-2 ring-signal ring-offset-1"
-                        )}
-                        style={{
-                            background: step(v),
-                            color: v >= max * 0.45 ? colors.paper : colors.graphite,
-                            transitionDelay: `${i * 25}ms`,
-                        }}
-                    >
-                        {i + 1}
-                    </div>
+            <svg viewBox="0 0 600 176" className="w-full overflow-visible" role="img" aria-label={`Gasto por día del mes: ${STRETCHES.map((s, i) => `días ${s.from} a ${s.to}, ${Math.round(shares[i]! * 100)}%`).join("; ")}`}>
+                {/* The stretch boundaries, so the three shares under the axis
+                    read against the bars they sum. */}
+                {[10, 20].map((d) => (
+                    <line key={d} x1={x(d) - (slot - bw) / 2} x2={x(d) - (slot - bw) / 2} y1={top - 6} y2={base} stroke={colors.mist} strokeDasharray="3 3" />
                 ))}
-            </div>
-            <div className="mt-3 flex flex-wrap justify-between gap-2 text-label text-graphite tabular">
-                <span>Días 1–10 · {Math.round(shares[0] * 100)}%</span>
-                <span>11–20 · {Math.round(shares[1] * 100)}%</span>
-                <span>21–31 · {Math.round(shares[2] * 100)}%</span>
-            </div>
+                <line x1={10} x2={590} y1={base} y2={base} stroke={colors.mist} />
+                {byDay.map((v, i) => (
+                    <g key={i} {...bind(`Día ${i + 1} · ${mxn(v)}`)}>
+                        <rect x={x(i)} y={top} width={slot} height={base - top} fill="transparent" />
+                        <rect
+                            className="lx-grow"
+                            style={{ transitionDelay: `${i * 20}ms` }}
+                            x={x(i) + (slot - bw) / 2}
+                            y={base - h(v)}
+                            width={bw}
+                            height={h(v)}
+                            rx={1.5}
+                            fill={on(i) ? colors.signal : colors.muted}
+                        />
+                        {i === peak && v > 0 && (
+                            <text className="lx-fade" style={{ ...TEXT, fill: colors.edge, transitionDelay: "700ms" }} x={x(i) + slot / 2} y={base - h(v) - 6} textAnchor="middle">
+                                {k(v)}
+                            </text>
+                        )}
+                        {[0, 4, 9, 14, 19, 24, byDay.length - 1].includes(i) && (
+                            <text x={x(i) + slot / 2} y={base + 14} textAnchor="middle" style={{ ...TEXT, fill: colors.ash }}>{i + 1}</text>
+                        )}
+                    </g>
+                ))}
+                {STRETCHES.map((s, i) => {
+                    const mid = (x(s.from - 1) + x(Math.min(s.to, byDay.length))) / 2;
+                    const lit = focus === "late" ? i > 0 : focus === "early" ? i === 0 : false;
+                    return (
+                        <text key={s.from} x={mid} y={base + 38} textAnchor="middle" style={{ ...TEXT, fill: lit ? colors.edge : colors.graphite, fontWeight: lit ? 500 : 400 }}>
+                            Días {s.from}–{s.to} · {Math.round(shares[i]! * 100)}%
+                        </text>
+                    );
+                })}
+            </svg>
             {node}
         </div>
     );

@@ -37,6 +37,7 @@ const CADENCE_DAYS: Record<string, number> = {
     biweekly: 14,
     monthly: 30,
     bimonthly: 60,
+    semiannual: 182,
     yearly: 365,
 };
 
@@ -70,6 +71,9 @@ function stepForward(d: Date, frequency: string): Date {
             break;
         case "bimonthly":
             next.setMonth(next.getMonth() + 2);
+            break;
+        case "semiannual":
+            next.setMonth(next.getMonth() + 6);
             break;
         case "yearly":
             next.setFullYear(next.getFullYear() + 1);
