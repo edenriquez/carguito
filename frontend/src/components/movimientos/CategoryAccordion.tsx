@@ -5,6 +5,7 @@ import { ChevronRight, CircleDashed, RotateCw } from "lucide-react";
 import type { AttentionKind, Transaction } from "@/lib/api";
 import { LENS_KIND_LABELS } from "@/components/charts/lens/types";
 import { cn } from "@/lib/cn";
+import { useChartsV2 } from "@/lib/chartsV2";
 import { useStatementBanks } from "@/lib/banks";
 import {
     formatCategoryPath,
@@ -17,6 +18,7 @@ import { parsePeriodKey } from "@/lib/metrics";
 import {
     barFill,
     pct,
+    sliceColor,
     type CategorySlice,
     type SubGroup,
 } from "@/lib/categoryComposition";
@@ -79,6 +81,7 @@ export function CategoryAccordion({
 }) {
     const rankOf = new Map(barOrder.map((s, i) => [s.key, i]));
     const categories = useCategories();
+    const v2 = useChartsV2();
     const banks = useStatementBanks();
     const rows = { categories, banks, attention, repeats };
 
@@ -100,7 +103,8 @@ export function CategoryAccordion({
                 {slices.map((s) => {
                     const open = openKey === s.key;
                     const rank = rankOf.get(s.key) ?? 0;
-                    const color = barFill(rank, s.uncategorized);
+                    // v2: the category's own taxonomy color, as in the bar.
+                    const color = v2 ? sliceColor(s, categories) : barFill(rank, s.uncategorized);
                     const Icon = s.uncategorized
                         ? CircleDashed
                         : categoryIcon(categories, s.key);

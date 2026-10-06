@@ -7,7 +7,7 @@ import { BackendNotice, EmptyState, Skeleton } from "@/components/ui";
 import { useBankScope } from "@/lib/banks";
 import { useCategories } from "@/lib/categories";
 import { useChartsV2 } from "@/lib/chartsV2";
-import { composeCategories, repeatedCharges } from "@/lib/categoryComposition";
+import { composeCategories, repeatedCharges, sliceColor } from "@/lib/categoryComposition";
 import { mxn2 } from "@/lib/format";
 import { pct } from "@/lib/categoryComposition";
 import { applyQuery, categoryLens, UNCATEGORIZED } from "@/lib/movimientosQuery";
@@ -61,7 +61,7 @@ export function PorCategoriaView({
     );
 
     // v2: the title is the concentration of the spend, from the bar's own
-    // ranking — the window's totals, the same order the stone ramp follows.
+    // ranking — the window's totals, biggest first.
     const finding = useMemo(() => {
         if (!v2 || !composition) return null;
         const named = composition.bar.filter((s) => !s.uncategorized);
@@ -132,6 +132,7 @@ export function PorCategoriaView({
                     activeKey={openKey}
                     onPick={toggle}
                     {...(finding && { label: finding })}
+                    colorOf={v2 ? (slice) => sliceColor(slice, categories) : undefined}
                 />
                 <p className="mt-3 text-label text-ash">
                     Base: cargos del periodo, sin «Entre mis cuentas» ni excluidos.

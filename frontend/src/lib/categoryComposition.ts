@@ -7,11 +7,13 @@
 
 import type { Transaction } from "./api";
 import {
+    categoryColor,
     categoryName,
     isUncategorizedId,
     isUncategorizedName,
     rootCategoryId,
     type CategoryInfo,
+    UNCATEGORIZED_COLOR,
 } from "./categories";
 import { chart, colors } from "@/design/tokens";
 import { UNCATEGORIZED } from "./movimientosQuery";
@@ -190,6 +192,16 @@ export function barFill(rank: number, uncategorized: boolean, selected = false):
     if (selected) return colors.signal;
     if (uncategorized) return chart.neutral[chart.neutral.length - 1]!;
     return chart.neutral[Math.min(rank, chart.neutral.length - 1)]!;
+}
+
+/** v2: a category slice wears its taxonomy color, the same swatch it has in
+ *  every other view; a focus fades the rest rather than recoloring anything.
+ *  The gap is Ash, like an uncategorized row anywhere else. */
+export function sliceColor(
+    slice: CategorySlice,
+    categories: Map<string, CategoryInfo> | null
+): string {
+    return slice.uncategorized ? UNCATEGORIZED_COLOR : categoryColor(categories, slice.key);
 }
 
 export function pct(share: number): number {

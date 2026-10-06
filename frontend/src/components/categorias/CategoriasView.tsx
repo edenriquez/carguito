@@ -11,7 +11,6 @@ import {
 } from "@/lib/categories";
 import { useBankScope } from "@/lib/banks";
 import { useChartsV2 } from "@/lib/chartsV2";
-import { chart as chartTokens, colors as palette } from "@/design/tokens";
 import { monthLabel, mxn } from "@/lib/format";
 import {
     isMetricError,
@@ -205,7 +204,8 @@ export function CategoriasView() {
     }, [points]);
 
     // v2: the category the reading is about — the one picked alone, else the
-    // window's biggest. The title names it and it is the one layer in Signal.
+    // window's biggest. The title names it; it keeps its own color like every
+    // other layer, so naming it is the whole of the default focus.
     const focus = v2
         ? pickedCategories.length === 1
             ? pickedCategories[0]!
@@ -213,34 +213,24 @@ export function CategoriasView() {
               ? (ranked[0]?.[0] ?? null)
               : null
         : null;
-    const lit = hovered ?? focus;
 
-    // v2: hue is not a category's identity. Each one takes a step of the stone
-    // ramp by its rank over the whole window — stable across months and
-    // filters — and Signal goes to the focused one only. Chart and chips read
-    // from this same map, so a chip is its layer's swatch.
-    const layerColors = useMemo(() => {
-        if (!v2) return categoryColors;
-        const map = new Map<string, string>();
-        ranked.forEach(([name], i) =>
-            map.set(
-                name,
-                lit !== null && sameCategory(name, lit)
-                    ? palette.signal
-                    : chartTokens.neutral[i % chartTokens.neutral.length]!
-            )
-        );
-        return map;
-    }, [v2, categoryColors, ranked, lit]);
-
+    // Every category wears its taxonomy color in both readings. In v2 a focus
+    // (a chip under the pointer, or a filter) fades the other chips' swatches
+    // instead of recoloring anything.
     const chips: CategoryChip[] = useMemo(
         () =>
             ranked.map(([name, amount]) => ({
                 name,
                 amount,
-                color: layerColors.get(name) ?? UNCATEGORIZED_COLOR,
+                color: categoryColors.get(name) ?? UNCATEGORIZED_COLOR,
+                faded:
+                    v2 &&
+                    (hovered
+                        ? !sameCategory(name, hovered)
+                        : pickedCategories.length > 0 &&
+                          !pickedCategories.some((n) => sameCategory(n, name))),
             })),
-        [ranked, layerColors]
+        [ranked, categoryColors, v2, hovered, pickedCategories]
     );
 
     // Taxonomy entries the period never touched.
@@ -461,7 +451,7 @@ export function CategoriasView() {
                                         // selection is a different chart.
                                         key={`${pickedCategories.join("|") || "todas"}-${pickedMonths?.start ?? ""}-${pickedMonths?.end ?? ""}`}
                                         points={chartPoints}
-                                        categoryColors={layerColors}
+                                        categoryColors={categoryColors}
                                         onPick={handlePick}
                                         dimmed={dimmed}
                                         partial={partial}

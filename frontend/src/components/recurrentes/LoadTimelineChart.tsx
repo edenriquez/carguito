@@ -53,7 +53,12 @@ export function timelineHeadline(timeline: Timeline): string | null {
     // the current month is the first future index.
     const ahead = timeline.months.length - timeline.firstFutureIndex - 1;
     const head = `Tus fijos suman ${mxn(monthlyRate)} al mes`;
-    return ahead > 0 ? `${head}; los próximos ${ahead} meses, ${mxn(projected)}` : head;
+    // Named by its last month rather than counted: «los próximos N meses»
+    // reads as N after today, and the window may or may not include today.
+    const last = timeline.months[timeline.months.length - 1];
+    return ahead > 0 && last
+        ? `${head}; de aquí a ${monthLabel(monthKeyToDate(last), true)}, ${mxn(projected)}`
+        : head;
 }
 
 type Drawn = { label: string; values: number[]; color: string };

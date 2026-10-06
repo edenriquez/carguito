@@ -23,6 +23,14 @@ export const k = (n: number) => `$${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`
 // `--lx-fs` is set by useChartTip in «Gráficas v2» only, so v1 renders 11 as before.
 export const TEXT = { fontSize: "calc(11px * var(--lx-fs, 1))", fill: colors.graphite } as const;
 
+/** v2: a shortfall drawn in HTML — Negative hatched over Paper with a Negative
+ *  edge. Negative is a text color and never a chart fill (tokens.ts), so the
+ *  red rides on thin stripes and the outline, not on a solid block. */
+export const NEGATIVE_HATCH = {
+    background: `repeating-linear-gradient(45deg, ${colors.negative} 0 1.5px, ${colors.paper} 1.5px 5px)`,
+    boxShadow: `inset 0 0 0 1px ${colors.negative}`,
+} as const;
+
 /** The latest month when the record stops before its last day: drawn apart and labelled «al {day}» in v2. */
 export type PartialMonth = { key: MonthKey; day: number } | null;
 /** A month's axis label, with «al {day}» on the partial one. */
@@ -115,8 +123,9 @@ export function BalanceChart({ months, income, partial = null }: {
 }) {
     const { box, bind, node, v2 } = useChartTip();
     // v2: what spills over the income is a shortfall, not "you": it leaves
-    // Signal for Negative and carries its own figure.
-    const overFill = v2 ? colors.negative : colors.signal;
+    // Signal for a Negative hatch and outline (Negative is never a solid chart
+    // fill) and carries its own figure.
+    const overFill = v2 ? "url(#lx-hatch-negative)" : colors.signal;
     const base = 170, top = 18;
     const max = Math.max(income, ...months.map((m) => m.amount)) * 1.12 || 1;
     const y = (v: number) => base - ((base - top) * v) / max;
@@ -124,6 +133,14 @@ export function BalanceChart({ months, income, partial = null }: {
     return (
         <div ref={box} className="relative">
             <svg viewBox="0 0 600 200" className="w-full overflow-visible" role="img" aria-label="Gasto por mes contra tu ingreso">
+                {v2 && (
+                    <defs>
+                        <pattern id="lx-hatch-negative" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                            <rect width="5" height="5" fill={colors.paper} />
+                            <line x1="0" y1="0" x2="0" y2="5" stroke={colors.negative} strokeWidth="1.5" />
+                        </pattern>
+                    </defs>
+                )}
                 {months.map((m, i) => {
                     const x = 20 + i * (bw + gap);
                     const under = Math.min(m.amount, income), over = Math.max(0, m.amount - income);
@@ -137,7 +154,7 @@ export function BalanceChart({ months, income, partial = null }: {
                             <g opacity={part ? 0.45 : 1}>
                                 <rect className="lx-grow" style={{ transitionDelay: `${i * 80}ms` }} x={x} y={y(under)} width={bw} height={base - y(under)} rx={2} fill={colors.graphite} />
                                 {over > 0 && (
-                                    <rect className="lx-fade" style={{ transitionDelay: `${800 + i * 90}ms` }} x={x} y={y(m.amount)} width={bw} height={y(under) - y(m.amount)} rx={2} fill={overFill} />
+                                    <rect className="lx-fade" style={{ transitionDelay: `${800 + i * 90}ms` }} x={x} y={y(m.amount)} width={bw} height={y(under) - y(m.amount)} rx={2} fill={overFill} {...(v2 && { stroke: colors.negative, strokeWidth: 1 })} />
                                 )}
                             </g>
                             {m.count > 0 && !v2 && (

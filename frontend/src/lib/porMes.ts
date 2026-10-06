@@ -186,6 +186,8 @@ export function peakMonth(
     return {
         month,
         over: (month.amount - average) / average,
-        lastComplete: month.key === complete[complete.length - 1]!.key,
+        // Against the window's last finished month, not its last month with
+        // cargos: a quiet month after the peak still makes the peak not-last.
+        lastComplete: month.key === months.filter((m) => m.key !== partial).at(-1)?.key,
     };
 }

@@ -221,7 +221,7 @@ export function CategorySpendChart({
                 },
             },
             // v2: a click filters the chart down to that layer, which is the
-            // feedback; darkening it as well would paint a focus over Signal.
+            // feedback; darkening it as well would muddy the category's own color.
             states: {
                 active: { filter: v2 ? { type: "none", value: 0 } : { type: "darken", value: 0.6 } },
             },

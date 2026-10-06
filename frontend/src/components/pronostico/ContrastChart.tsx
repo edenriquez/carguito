@@ -24,14 +24,18 @@ export type ContrastSeries = {
 
 /**
  * v2: what the chart is read for, in numbers — how many months the income
- * covers the fijos, and the average gap. Months with nothing on either side
- * are left out: an empty month is no evidence of coverage. Null when there
- * is no month to count, so the caller falls back to the metric's name.
+ * covers the fijos, and the average gap. Only measured months count: the
+ * current one (its nómina may not have landed yet) and the projected ones are
+ * not evidence of coverage. Months with nothing on either side are left out
+ * too: an empty month is no evidence either. A deficit the projection shows
+ * is named apart. Null when there is no month to count, so the caller falls
+ * back to the metric's name.
  */
 export function contrastFinding(data: ContrastSeries): {
     covered: number;
     counted: number;
     avgGap: number;
+    /** Measured months in deficit — the only ones the chart marks. */
     deficits: number[];
     title: string;
 } | null {
@@ -39,10 +43,17 @@ export function contrastFinding(data: ContrastSeries): {
     let counted = 0;
     let gapSum = 0;
     const deficits: number[] = [];
+    let projectedDeficit = -1;
     data.months.forEach((_, i) => {
         const income = (data.nomina[i] ?? 0) + (data.extra[i] ?? 0);
         const fijos = data.fijos[i] ?? 0;
         if (income === 0 && fijos === 0) return;
+        if (i >= data.firstFutureIndex) {
+            if (i > data.firstFutureIndex && income < fijos && projectedDeficit < 0) {
+                projectedDeficit = i;
+            }
+            return;
+        }
         counted++;
         gapSum += income - fijos;
         if (income >= fijos) covered++;
@@ -50,9 +61,11 @@ export function contrastFinding(data: ContrastSeries): {
     });
     if (counted === 0) return null;
     const avgGap = gapSum / counted;
+    const projected = data.months[projectedDeficit];
     const title =
         `Tus ingresos cubren tus fijos en ${covered} de ${counted} ${counted === 1 ? "mes" : "meses"}; ` +
-        `en promedio ${avgGap >= 0 ? "sobran" : "faltan"} ${mxn(Math.abs(avgGap))} al mes`;
+        `en promedio ${avgGap >= 0 ? "sobran" : "faltan"} ${mxn(Math.abs(avgGap))} al mes` +
+        (projected ? `; la proyección marca déficit en ${monthLabel(monthKeyToDate(projected), true)}` : "");
     return { covered, counted, avgGap, deficits, title };
 }
 
@@ -162,11 +175,13 @@ export function ContrastChart({
                     strokeColors: colors.paper,
                     strokeWidth: 2,
                     hover: { size: 6 },
+                    // A ring, not a fill: Negative is a text color, never a
+                    // chart fill (tokens.ts).
                     discrete: deficits.map((i) => ({
                         seriesIndex: 2,
                         dataPointIndex: i,
-                        fillColor: colors.negative,
-                        strokeColor: colors.paper,
+                        fillColor: colors.paper,
+                        strokeColor: colors.negative,
                         size: 5,
                     })),
                 },
@@ -273,7 +288,7 @@ export function ContrastChart({
                             Fijos
                         </li>
                         {finding && finding.deficits.length > 0 && (
-                            <LegendSwatch color={colors.negative} label="Mes en déficit" />
+                            <LegendSwatch color={colors.negative} label="Mes en déficit" ring />
                         )}
                     </>
                 ) : (
@@ -293,10 +308,14 @@ function row(label: string, value: number, swatch: string): string {
         </div>`;
 }
 
-function LegendSwatch({ color, label }: { color: string; label: string }) {
+function LegendSwatch({ color, label, ring }: { color: string; label: string; ring?: boolean }) {
     return (
         <li className="flex items-center gap-1.5">
-            <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: color }} />
+            <span
+                aria-hidden
+                className="h-2 w-2 rounded-full"
+                style={ring ? { boxShadow: `inset 0 0 0 1.5px ${color}` } : { background: color }}
+            />
             {label}
         </li>
     );

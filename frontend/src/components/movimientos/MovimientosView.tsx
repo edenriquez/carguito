@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchX, Inbox } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useAppData } from "@/components/AppChrome";
@@ -126,6 +126,11 @@ export function MovimientosView() {
     const [visibleCount, setVisibleCount] = useState(page);
     const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
     const { openDraft, opening } = useLectura();
+    // v2: the default lens focus is offered once per reading. `defaulted` says
+    // it was placed; `userTouched` says the user picked or dropped (Esc) one,
+    // and from then on a refetch of the lecturas never overrides that choice.
+    const lensDefaulted = useRef(false);
+    const lensUserTouched = useRef(false);
     // A new window, search or page size is a new reading: selection and paging
     // reset.
     useEffect(() => {
@@ -133,6 +138,8 @@ export function MovimientosView() {
         setVisibleCount(page);
         setExcluded(new Set());
         setLensFocus(null);
+        lensDefaulted.current = false;
+        lensUserTouched.current = false;
     }, [windowKey, query, dataVersion, page, statementIds]);
 
     const filtered = useMemo(() => {
@@ -171,11 +178,14 @@ export function MovimientosView() {
 
     // v2: a new set of lecturas opens on its most serious one (warn before
     // info) instead of waiting for a click; a chip or Esc replaces it. Runs
-    // after the reset above, so a new window lands focused, not cleared.
+    // after the reset above, so a new window lands focused, not cleared — and
+    // only once per reading, so lecturas arriving late never undo a choice.
     useEffect(() => {
-        if (!v2) return;
+        if (!v2 || lensDefaulted.current || lensUserTouched.current) return;
+        if (lensGroups.length === 0) return;
+        lensDefaulted.current = true;
         setLensFocus(defaultFocus(lensGroups));
-    }, [v2, lensGroups]);
+    }, [v2, lensGroups, windowKey, query, dataVersion, page, statementIds]);
 
     const attentionByRow = useMemo(
         () => new Map(attention.map((a) => [a.transaction_id, a.kind])),
@@ -184,6 +194,7 @@ export function MovimientosView() {
 
     const onLensFocus = useCallback((next: LensFocus) => {
         if (next) track("lens.open", { chart: "movimientos", kind: next.groupId, index: next.index });
+        lensUserTouched.current = true;
         setLensFocus(next);
     }, []);
 
@@ -264,7 +275,7 @@ export function MovimientosView() {
               : "";
         return `Cada movimiento · ${span}${needle}`;
     }, [finding, orientation, bounds.start, bounds.end, query]);
-    // v2: the category the reading is narrowed to is the one Signal marks.
+    // v2: the category the reading is narrowed to keeps its color; the rest fade.
     const focusCategoryId =
         v2 && query.categoryIds.length === 1 && query.categoryIds[0] !== UNCATEGORIZED
             ? query.categoryIds[0]!

@@ -3,7 +3,9 @@
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { mxn2 } from "@/lib/format";
-import { barFill, pct, type CategorySlice } from "@/lib/categoryComposition";
+import { useCategories } from "@/lib/categories";
+import { useChartsV2 } from "@/lib/chartsV2";
+import { barFill, pct, sliceColor, type CategorySlice } from "@/lib/categoryComposition";
 import { monthName, spansYears, type MonthSlice } from "@/lib/porMes";
 
 /**
@@ -142,6 +144,11 @@ function Categorias({
     slices: CategorySlice[];
     onPick: (key: string) => void;
 }) {
+    // v2: each line carries its category's swatch — the same color it wears
+    // in the bar and the accordion. The month rows above keep the stone ramp:
+    // a month is not a category.
+    const v2 = useChartsV2();
+    const categories = useCategories();
     return (
         <div className="py-3 pl-7 pr-5 sm:pl-12 sm:pr-6">
             {slices.map((s) => (
@@ -157,6 +164,13 @@ function Categorias({
                             aria-hidden
                             className="shrink-0 translate-y-0.5 text-ash"
                         />
+                        {v2 && (
+                            <span
+                                aria-hidden
+                                className="h-2 w-2 shrink-0 self-center rounded-full"
+                                style={{ background: sliceColor(s, categories) }}
+                            />
+                        )}
                         <span className="truncate text-body-sm text-graphite">{s.name}</span>
                         <span className="tabular whitespace-nowrap text-label font-normal text-ash">
                             · {s.count.toLocaleString("es-MX")} cargo{s.count === 1 ? "" : "s"} ·{" "}

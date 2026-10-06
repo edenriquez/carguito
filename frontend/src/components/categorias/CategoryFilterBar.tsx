@@ -4,7 +4,13 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { mxn } from "@/lib/format";
 
-export type CategoryChip = { name: string; color: string; amount: number };
+export type CategoryChip = {
+    name: string;
+    color: string;
+    amount: number;
+    /** v2: another category has the focus, so this swatch steps back. */
+    faded?: boolean;
+};
 
 /**
  * The chips that say which slice of the period the list below is showing.
@@ -76,7 +82,7 @@ export function CategoryFilterBar({
                         <span
                             aria-hidden
                             className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ background: c.color }}
+                            style={{ background: c.color, opacity: c.faded ? 0.3 : undefined }}
                         />
                         {c.name}
                     </button>

@@ -14,7 +14,7 @@ import type {
     PaydayReading,
 } from "@/lib/lecturaEstado";
 import { fromIso } from "@/lib/porMes";
-import { TEXT, k, monthAxis, monthShort, type PartialMonth } from "./EstadoCharts";
+import { NEGATIVE_HATCH, TEXT, k, monthAxis, monthShort, type PartialMonth } from "./EstadoCharts";
 import { useChartTip } from "./useChartTip";
 
 /*
@@ -446,8 +446,9 @@ export function DiaCeroChart({ payday, income }: { payday: PaydayReading; income
 
 export function ComprometidoChart({ committed, income }: { committed: CommittedReading; income: number }) {
     const { box, bind, node, v2 } = useChartTip();
-    // v2: the shortfall is not "you" — Negative, with its figure in the legend.
-    const shortFill = v2 ? colors.negative : colors.signal;
+    // v2: the shortfall is not "you" — a Negative hatch (never a solid red
+    // fill), with its figure in the legend.
+    const shortFill = v2 ? NEGATIVE_HATCH : { background: colors.signal };
     const spent = committed.fijos + committed.variable;
     const scale = Math.max(income, spent) || 1;
     const w = (v: number) => (v / scale) * 100;
@@ -465,7 +466,7 @@ export function ComprometidoChart({ committed, income }: { committed: CommittedR
                         <div key={p.label} {...bind(`${p.label} · ${mxn(p.amount)} · ${pct(p.amount / income)} de tu ingreso`)} className="lx-growx h-full" style={{ width: `${w(p.amount)}%`, background: p.fill, transitionDelay: `${i * 160}ms` }} />
                     ))}
                     {short > 0 && (
-                        <div {...bind(`Faltan ${mxn(short)} al mes`)} className="lx-fade h-full" style={{ width: `${w(short)}%`, background: shortFill, transitionDelay: "500ms" }} />
+                        <div {...bind(`Faltan ${mxn(short)} al mes`)} className="lx-fade h-full" style={{ width: `${w(short)}%`, ...shortFill, transitionDelay: "500ms" }} />
                     )}
                 </div>
                 {short > 0 && (
@@ -478,7 +479,7 @@ export function ComprometidoChart({ committed, income }: { committed: CommittedR
                 {committed.margin >= 0 ? (
                     <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: colors.wash }} />Margen {mxn(committed.margin)}</span>
                 ) : (
-                    <span className={cn("flex items-center gap-1.5", v2 && "text-negative")}><i className="inline-block h-2.5 w-2.5 rounded-[2px]" style={{ background: shortFill }} />Faltan {mxn(-committed.margin)}</span>
+                    <span className={cn("flex items-center gap-1.5", v2 && "text-negative")}><i className="inline-block h-2.5 w-2.5 rounded-[2px]" style={shortFill} />Faltan {mxn(-committed.margin)}</span>
                 )}
             </div>
             <ul className="mt-4 divide-y divide-mist">
