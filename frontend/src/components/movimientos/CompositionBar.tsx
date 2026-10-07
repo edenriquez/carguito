@@ -2,7 +2,6 @@
 
 import { useState, type CSSProperties } from "react";
 import { cn } from "@/lib/cn";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { mxn2 } from "@/lib/format";
 import { barFill, pct, type CategorySlice } from "@/lib/categoryComposition";
 
@@ -32,15 +31,16 @@ function midpoint(slices: CategorySlice[], key: string): number {
  * - **Legend is name + percent, never an amount.** The amount appears once,
  *   on the pin over the open slice, so the bar never competes with the total
  *   stated in the header above it.
- * - **Hue is not the category channel.** Every slice is a step of the stone
- *   ramp ordered by size. Signal is the pointer and the page's subject, in
+ * - **Without `colorOf`, hue is not the channel.** A basket of products has
+ *   no colors of its own, so every slice is a step of the stone ramp ordered
+ *   by size. Signal is the pointer and the page's subject, in
  *   that order: a slice turns Signal under the cursor, and the one the page is
  *   currently about keeps it plus a white inset ring, so hovering a neighbour
  *   never makes the open slice look closed. Hover is colour only — the click
  *   is the one thing that opens a category in the list below.
  *
- * v2 (with `colorOf`): a category is its taxonomy color here as everywhere
- * else. Focus fades the other slices instead of painting the focused one
+ * With `colorOf` (category bars): a category is its taxonomy color here as
+ * everywhere else. Focus fades the other slices instead of painting the focused one
  * Signal; the open slice carries an Ink ring.
  */
 export function CompositionBar({
@@ -59,9 +59,9 @@ export function CompositionBar({
     countLabel?: (n: number) => string;
     /** What the bar is a picture of, for assistive tech. */
     label?: string;
-    /** v2, category bars only: each slice's own taxonomy color. The focused
+    /** Category bars only: each slice's own taxonomy color. The focused
      *  slice (pointed at or open) keeps it and gets an Ink outline; the rest
-     *  fade. Absent — v1, or a basket of products — the stone ramp stands. */
+     *  fade. Absent — a basket of products — the stone ramp stands. */
     colorOf?: (slice: CategorySlice) => string;
 }) {
     // Above the early return, where every hook has to be: a period with no
@@ -72,23 +72,22 @@ export function CompositionBar({
     // at once would need two gutters, and the question under the cursor is
     // always the more urgent of the two.
     const [hoverKey, setHoverKey] = useState<string | null>(null);
-    const v2 = useChartsV2();
 
     if (slices.length === 0) return null;
 
     const named = slices.filter((s) => !s.uncategorized);
-    // v2: a gap worth more than a twentieth of the spend is part of the
+    // A gap worth more than a twentieth of the spend is part of the
     // reading, so the legend names it too — last, like the bar draws it.
-    const gap = v2 ? slices.find((s) => s.uncategorized && s.share > 0.05) : undefined;
+    const gap = slices.find((s) => s.uncategorized && s.share > 0.05);
     const legend = [...named.slice(0, LEGEND_MAX), ...(gap ? [gap] : [])];
-    // v2: with nothing pointed at or open, the pin rests on the biggest slice
+    // With nothing pointed at or open, the pin rests on the biggest slice
     // — the one the title names — so its figure is on screen without a hover.
-    const restKey = v2 ? (named[0]?.key ?? null) : null;
+    const restKey = named[0]?.key ?? null;
     const pinned = slices.find((s) => s.key === (hoverKey ?? activeKey ?? restKey)) ?? null;
     const pin = pinned ? midpoint(slices, pinned.key) : null;
-    // v2 own colors: only a real focus fades the others — the resting pin on
+    // Own colors: only a real focus fades the others — the resting pin on
     // the biggest slice is a label, not a selection.
-    const own = v2 ? colorOf : undefined;
+    const own = colorOf;
     const focusKey = hoverKey ?? activeKey;
     const faded = (key: string) => focusKey !== null && key !== focusKey;
 

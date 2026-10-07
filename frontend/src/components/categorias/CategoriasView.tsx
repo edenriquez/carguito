@@ -10,7 +10,6 @@ import {
     useCategories,
 } from "@/lib/categories";
 import { useBankScope } from "@/lib/banks";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { monthLabel, mxn } from "@/lib/format";
 import {
     isMetricError,
@@ -95,8 +94,7 @@ export function CategoriasView() {
     // corrected.
     const [edits, setEdits] = useState(0);
     const { openDraft, opening } = useLectura();
-    const v2 = useChartsV2();
-    // v2: the chip under the pointer — a transient focus over the chart.
+    // The chip under the pointer — a transient focus over the chart.
     const [hovered, setHovered] = useState<string | null>(null);
 
     // What the list is showing. Both come from the chart or the chips, and
@@ -203,34 +201,31 @@ export function CategoriasView() {
         return Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
     }, [points]);
 
-    // v2: the category the reading is about — the one picked alone, else the
+    // The category the reading is about — the one picked alone, else the
     // window's biggest. The title names it; it keeps its own color like every
     // other layer, so naming it is the whole of the default focus.
-    const focus = v2
-        ? pickedCategories.length === 1
+    const focus =
+        pickedCategories.length === 1
             ? pickedCategories[0]!
             : pickedCategories.length === 0
               ? (ranked[0]?.[0] ?? null)
-              : null
-        : null;
+              : null;
 
-    // Every category wears its taxonomy color in both readings. In v2 a focus
-    // (a chip under the pointer, or a filter) fades the other chips' swatches
-    // instead of recoloring anything.
+    // Every category wears its taxonomy color. A focus (a chip under the
+    // pointer, or a filter) fades the other chips' swatches instead of
+    // recoloring anything.
     const chips: CategoryChip[] = useMemo(
         () =>
             ranked.map(([name, amount]) => ({
                 name,
                 amount,
                 color: categoryColors.get(name) ?? UNCATEGORIZED_COLOR,
-                faded:
-                    v2 &&
-                    (hovered
-                        ? !sameCategory(name, hovered)
-                        : pickedCategories.length > 0 &&
-                          !pickedCategories.some((n) => sameCategory(n, name))),
+                faded: hovered
+                    ? !sameCategory(name, hovered)
+                    : pickedCategories.length > 0 &&
+                      !pickedCategories.some((n) => sameCategory(n, name)),
             })),
-        [ranked, categoryColors, v2, hovered, pickedCategories]
+        [ranked, categoryColors, hovered, pickedCategories]
     );
 
     // Taxonomy entries the period never touched.
@@ -348,30 +343,30 @@ export function CategoriasView() {
         [monthKeys, selectCustom]
     );
 
-    // v2: hovering a chip whose layer is drawn fades every other layer.
+    // Hovering a chip whose layer is drawn fades every other layer.
     const dimmed = useMemo(() => {
-        if (!v2 || !hovered || !chartPoints.some((p) => sameCategory(p.category, hovered))) {
+        if (!hovered || !chartPoints.some((p) => sameCategory(p.category, hovered))) {
             return undefined;
         }
         return new Set(chartPoints.map((p) => p.category).filter((c) => !sameCategory(c, hovered)));
-    }, [v2, hovered, chartPoints]);
+    }, [hovered, chartPoints]);
 
-    // v2: the month of the latest movement, if the statement stops before it
+    // The month of the latest movement, if the statement stops before it
     // ends — drawn apart and kept out of the mean and the month-on-month delta.
     const partial = useMemo(() => {
-        if (!v2 || !items?.length) return null;
+        if (!items?.length) return null;
         const latest = items.reduce((max, t) => (t.date > max ? t.date : max), items[0]!.date);
         const [y, m, d] = latest.split("-").map(Number);
         if (!y || !m || !d) return null;
         const lastDay = new Date(y, m, 0).getDate();
         return d < lastDay ? { month: latest.slice(0, 7), day: d } : null;
-    }, [v2, items]);
+    }, [items]);
 
-    // v2: the chart's title is its finding, from the whole window (not the
+    // The chart's title is its finding, from the whole window (not the
     // drawn subset): the focus category's share, its total, and — with two
     // complete months — how the last one moved against the one before.
     const finding = useMemo(() => {
-        if (!v2 || !focus || points.length === 0) return null;
+        if (!focus || points.length === 0) return null;
         let all = 0;
         let own = 0;
         const months: string[] = [];
@@ -400,7 +395,7 @@ export function CategoriasView() {
             text += `; ${delta > 0 ? "+" : ""}${delta}% en ${label(last)} vs ${label(prev)}`;
         }
         return text;
-    }, [v2, focus, points, partial]);
+    }, [focus, points, partial]);
 
     const pickedMonthLabel = useMemo(() => {
         if (!pickedMonths) return undefined;
@@ -459,7 +454,7 @@ export function CategoriasView() {
                                     />
                                 </RangeBrush>
                                 </div>
-                                <p className={cn("text-label", v2 ? "text-graphite" : "text-ash")}>
+                                <p className="text-label text-graphite">
                                     Haz clic en una capa para ver sus movimientos, o
                                     arrastra sobre los meses para acotar un rango.
                                     {untouched.length > 0 &&
@@ -494,7 +489,7 @@ export function CategoriasView() {
                                 month={pickedMonths?.start ?? null}
                                 monthLabel={pickedMonthLabel}
                                 onClearMonth={() => setPickedMonths(null)}
-                                onHover={v2 ? setHovered : undefined}
+                                onHover={setHovered}
                             />
                         </div>
 

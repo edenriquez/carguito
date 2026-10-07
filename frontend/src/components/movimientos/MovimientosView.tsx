@@ -7,7 +7,6 @@ import { useAppData } from "@/components/AppChrome";
 import { useSearchParams } from "next/navigation";
 import { useTimeWindow } from "@/components/TimeWindowProvider";
 import { msToIso } from "@/lib/window";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { track } from "@/lib/telemetry";
 import { draftFromClauses, draftFromNeedle } from "@/lib/lectura";
 import {
@@ -87,7 +86,6 @@ export function MovimientosView() {
         statementIds
     );
     const [lensFocus, setLensFocus] = useState<LensFocus>(null);
-    const v2 = useChartsV2();
 
     // Each panel owns its settings, keyed by its own id: the chart's are the
     // chart's, the list's are the list's, and both outlive this mount.
@@ -126,7 +124,7 @@ export function MovimientosView() {
     const [visibleCount, setVisibleCount] = useState(page);
     const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
     const { openDraft, opening } = useLectura();
-    // v2: the default lens focus is offered once per reading. `defaulted` says
+    // The default lens focus is offered once per reading. `defaulted` says
     // it was placed; `userTouched` says the user picked or dropped (Esc) one,
     // and from then on a refetch of the lecturas never overrides that choice.
     const lensDefaulted = useRef(false);
@@ -176,16 +174,16 @@ export function MovimientosView() {
         });
     }, [filtered, attention, mode]);
 
-    // v2: a new set of lecturas opens on its most serious one (warn before
+    // A new set of lecturas opens on its most serious one (warn before
     // info) instead of waiting for a click; a chip or Esc replaces it. Runs
     // after the reset above, so a new window lands focused, not cleared — and
     // only once per reading, so lecturas arriving late never undo a choice.
     useEffect(() => {
-        if (!v2 || lensDefaulted.current || lensUserTouched.current) return;
+        if (lensDefaulted.current || lensUserTouched.current) return;
         if (lensGroups.length === 0) return;
         lensDefaulted.current = true;
         setLensFocus(defaultFocus(lensGroups));
-    }, [v2, lensGroups, windowKey, query, dataVersion, page, statementIds]);
+    }, [lensGroups, windowKey, query, dataVersion, page, statementIds]);
 
     const attentionByRow = useMemo(
         () => new Map(attention.map((a) => [a.transaction_id, a.kind])),
@@ -246,11 +244,11 @@ export function MovimientosView() {
     }, [filtered, bounds.start, bounds.end, query]);
     const filtering = queryIsActive(query) && Boolean(listed && listed.length > 0);
 
-    // v2: the orientation becomes the title, with the contrast that makes it
+    // The orientation becomes the title, with the contrast that makes it
     // a finding — the biggest cargo against the typical one. The span and the
     // criteria move under it with the chart's name.
     const finding = useMemo(() => {
-        if (!v2 || !filtered) return null;
+        if (!filtered) return null;
         const expenses = filtered.filter((t) => t.type === "expense");
         if (expenses.length === 0) return null;
         const spent = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -261,7 +259,7 @@ export function MovimientosView() {
         const times = Math.abs(top.amount) / median;
         const x = times < 10 ? times.toFixed(1).replace(/\.0$/, "") : String(Math.round(times));
         return `${head}; el mayor, ${shorten(top.description)} ${mxn(Math.abs(top.amount))}, es ${x}× tu mediana`;
-    }, [v2, filtered]);
+    }, [filtered]);
     const findingSub = useMemo(() => {
         if (!finding || !orientation) return orientation;
         const span =
@@ -275,9 +273,9 @@ export function MovimientosView() {
               : "";
         return `Cada movimiento · ${span}${needle}`;
     }, [finding, orientation, bounds.start, bounds.end, query]);
-    // v2: the category the reading is narrowed to keeps its color; the rest fade.
+    // The category the reading is narrowed to keeps its color; the rest fade.
     const focusCategoryId =
-        v2 && query.categoryIds.length === 1 && query.categoryIds[0] !== UNCATEGORIZED
+        query.categoryIds.length === 1 && query.categoryIds[0] !== UNCATEGORIZED
             ? query.categoryIds[0]!
             : null;
 
@@ -580,7 +578,7 @@ function fromIso(day: string): Date {
     return new Date(y, m - 1, d);
 }
 
-/** v2: the lectura a fresh set opens on — the first warn, else the first. */
+/** The lectura a fresh set opens on — the first warn, else the first. */
 function defaultFocus(groups: LensGroup[]): LensFocus {
     for (const g of groups) {
         const index = g.lecturas.findIndex((l) => l.severity === "warn");

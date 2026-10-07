@@ -6,7 +6,6 @@ import { useAppData } from "@/components/AppChrome";
 import { BackendNotice, EmptyState, Skeleton } from "@/components/ui";
 import { useBankScope } from "@/lib/banks";
 import { useCategories } from "@/lib/categories";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { composeCategories, repeatedCharges, sliceColor } from "@/lib/categoryComposition";
 import { mxn2 } from "@/lib/format";
 import { pct } from "@/lib/categoryComposition";
@@ -43,7 +42,6 @@ export function PorCategoriaView({
     // here and flagged there is the one charge, not two opinions.
     const { items: attention } = useAttention(bounds, dataVersion, statementIds);
     const [openKey, setOpenKey] = useState<string | null>(null);
-    const v2 = useChartsV2();
 
     const listed = useMemo(
         () =>
@@ -60,10 +58,10 @@ export function PorCategoriaView({
         [attention]
     );
 
-    // v2: the title is the concentration of the spend, from the bar's own
+    // The title is the concentration of the spend, from the bar's own
     // ranking — the window's totals, biggest first.
     const finding = useMemo(() => {
-        if (!v2 || !composition) return null;
+        if (!composition) return null;
         const named = composition.bar.filter((s) => !s.uncategorized);
         const top = named[0];
         if (!top) return null;
@@ -72,7 +70,7 @@ export function PorCategoriaView({
         if (n < 2) return head;
         const share = named.slice(0, n).reduce((s, x) => s + x.share, 0);
         return `${head}; las ${n === 3 ? "3" : "2"} primeras, ${pct(share)}%`;
-    }, [v2, composition]);
+    }, [composition]);
 
     function toggle(key: string) {
         setOpenKey((cur) => (cur === key ? null : key));
@@ -132,7 +130,7 @@ export function PorCategoriaView({
                     activeKey={openKey}
                     onPick={toggle}
                     {...(finding && { label: finding })}
-                    colorOf={v2 ? (slice) => sliceColor(slice, categories) : undefined}
+                    colorOf={(slice) => sliceColor(slice, categories)}
                 />
                 <p className="mt-3 text-label text-ash">
                     Base: cargos del periodo, sin «Entre mis cuentas» ni excluidos.
@@ -142,7 +140,6 @@ export function PorCategoriaView({
             <section className="min-w-0 overflow-hidden rounded-card border border-mist bg-paper shadow-card">
                 <CategoryAccordion
                     slices={composition.slices}
-                    barOrder={composition.bar}
                     openKey={openKey}
                     onToggle={toggle}
                     onVerMas={verMas}

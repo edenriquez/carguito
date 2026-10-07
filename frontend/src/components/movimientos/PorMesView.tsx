@@ -7,7 +7,6 @@ import { useTimeWindow } from "@/components/TimeWindowProvider";
 import { BackendNotice, EmptyState, Skeleton } from "@/components/ui";
 import { useBankScope } from "@/lib/banks";
 import { useCategories } from "@/lib/categories";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { mxn } from "@/lib/format";
 import { applyQuery, categoryLens } from "@/lib/movimientosQuery";
 import {
@@ -50,7 +49,6 @@ export function PorMesView({
     const categories = useCategories();
     const { query, openModal } = useMovimientosSearch();
     const [openKey, setOpenKey] = useState<string | null>(null);
-    const v2 = useChartsV2();
 
     const keys = useMemo(() => spanMonthKeys(anchor), [anchor]);
     const bounds = useMemo(() => spanBounds(anchor), [anchor]);
@@ -65,17 +63,13 @@ export function PorMesView({
         [listed, categories, keys]
     );
 
-    // v2: the running month is marked and left out of the mean, and the
+    // The running month is marked and left out of the mean, and the
     // title states the peak against that mean.
-    const partial = useMemo(() => (v2 ? partialMonthOf(anchor) : null), [v2, anchor]);
-    const average = reading
-        ? v2
-            ? completeAverage(reading.months, partial?.key ?? null)
-            : reading.average
-        : 0;
+    const partial = useMemo(() => partialMonthOf(anchor), [anchor]);
+    const average = reading ? completeAverage(reading.months, partial?.key ?? null) : 0;
     const peak = useMemo(
-        () => (v2 && reading ? peakMonth(reading.months, average, partial?.key ?? null) : null),
-        [v2, reading, average, partial]
+        () => (reading ? peakMonth(reading.months, average, partial?.key ?? null) : null),
+        [reading, average, partial]
     );
     const finding = useMemo(() => {
         if (!peak) return null;

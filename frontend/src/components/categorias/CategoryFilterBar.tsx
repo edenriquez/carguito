@@ -8,7 +8,7 @@ export type CategoryChip = {
     name: string;
     color: string;
     amount: number;
-    /** v2: another category has the focus, so this swatch steps back. */
+    /** Another category has the focus, so this swatch steps back. */
     faded?: boolean;
 };
 
@@ -38,8 +38,8 @@ export function CategoryFilterBar({
     month: string | null;
     monthLabel?: string;
     onClearMonth: () => void;
-    /** v2: a chip under the pointer (or keyboard focus) lights its layer in
-     *  the chart; null when it leaves. Absent in v1. */
+    /** A chip under the pointer (or keyboard focus) lights its layer in
+     *  the chart; null when it leaves. */
     onHover?: (name: string | null) => void;
 }) {
     return (

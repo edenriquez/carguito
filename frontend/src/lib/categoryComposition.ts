@@ -186,15 +186,16 @@ function isUncategorized(key: string, name: string): boolean {
     return isUncategorizedName(name);
 }
 
-/** Stone ramp by rank. Hue is not the category channel — Signal marks the
- *  selected slice only. Leftover is the lightest step. */
+/** Stone ramp by rank, for slices with no color of their own (months,
+ *  products) — Signal marks the selected slice only. Leftover is the
+ *  lightest step. */
 export function barFill(rank: number, uncategorized: boolean, selected = false): string {
     if (selected) return colors.signal;
     if (uncategorized) return chart.neutral[chart.neutral.length - 1]!;
     return chart.neutral[Math.min(rank, chart.neutral.length - 1)]!;
 }
 
-/** v2: a category slice wears its taxonomy color, the same swatch it has in
+/** A category slice wears its taxonomy color, the same swatch it has in
  *  every other view; a focus fades the rest rather than recoloring anything.
  *  The gap is Ash, like an uncategorized row anywhere else. */
 export function sliceColor(

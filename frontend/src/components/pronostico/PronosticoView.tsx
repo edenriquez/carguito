@@ -32,7 +32,6 @@ import { useLectura } from "@/components/lectura/LecturaProvider";
 import { draftFromClauses, MAX_LECTURA_CLAUSES } from "@/lib/lectura";
 import { AddIngresoSheet } from "./AddIngresoSheet";
 import { ContrastChart, CONTRAST_COLORS, contrastFinding } from "./ContrastChart";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { useIngresos } from "./useIngresos";
 
 const MONTHS_BACK = 12;
@@ -180,9 +179,8 @@ export function PronosticoView({ onGoToFijos }: { onGoToFijos?: () => void } = {
         [fijosTl, nominaTl, extraTl]
     );
 
-    // v2: the chart's title states its finding; the metric's name moves under it.
-    const v2 = useChartsV2();
-    const contrastTitle = v2 ? contrastFinding(contrast)?.title : undefined;
+    // The chart's title states its finding; the metric's name moves under it.
+    const contrastTitle = contrastFinding(contrast)?.title;
 
     const income = nominaTl.totals.projected + extraTl.totals.projected;
     const need = fijosTl.totals.projected;

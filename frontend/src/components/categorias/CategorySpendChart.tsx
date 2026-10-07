@@ -5,7 +5,6 @@ import type { ApexOptions } from "apexcharts";
 import { colors as palette } from "@/design/tokens";
 import { compactMxn, mxn } from "@/lib/format";
 import { UNCATEGORIZED_COLOR } from "@/lib/categories";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { ApexChart } from "@/components/charts/apex/ApexChart";
 
 export type MonthlyCategoryPoint = {
@@ -26,7 +25,7 @@ export type MonthlyCategoryPoint = {
  * it, and the list below answers — same gesture as a dot in Movimientos, so
  * a mark in this app always means the rows behind it are one click away.
  *
- * v2: the chips are the legend (Apex's is hidden); layers outside the hovered
+ * The chips are the legend (Apex's is hidden); layers outside the hovered
  * category fade; a dashed rule carries the monthly mean of the complete
  * months and the peak month shows its total; the month still being written
  * (`partial`) is drawn faded with "al {día}" and stays out of the mean.
@@ -46,13 +45,12 @@ export function CategorySpendChart({
     /** A layer was clicked: its category and its month bucket ("2026-05"). */
     onPick?: (category: string, month: string) => void;
     height?: number;
-    /** v2: categories drawn faded because another one has the focus. */
+    /** Categories drawn faded because another one has the focus. */
     dimmed?: Set<string>;
-    /** v2: the month the latest movement falls in, when it is not over yet. */
+    /** The month the latest movement falls in, when it is not over yet. */
     partial?: { month: string; day: number } | null;
     ariaLabel?: string;
 }) {
-    const v2 = useChartsV2();
     // The click handler reads these through a ref: Apex keeps the options
     // object it was mounted with, so a stale closure would report last
     // render's categories after a period change.
@@ -82,14 +80,6 @@ export function CategorySpendChart({
         const colors = categories.map((c) => categoryColors.get(c) ?? UNCATEGORIZED_COLOR);
         lookup.current = { categories, months };
 
-        if (!v2) {
-            const series = categories.map((cat) => ({
-                name: cat,
-                data: months.map((m) => Math.round(byKey.get(`${m}|${cat}`) ?? 0)),
-            }));
-            return { series, colors, monthLabels, opacity: 1, average: null, peak: null };
-        }
-
         // The unfinished month: its label says how far it got, and its layers
         // carry the fade in their own fill (#rrggbb + alpha) because Apex has
         // no per-point opacity.
@@ -118,7 +108,7 @@ export function CategorySpendChart({
             peakIndex >= 0 ? { label: monthLabels[peakIndex]!, total: monthTotals[peakIndex]! } : null;
         const opacity = categories.map((c) => (dimmed?.has(c) ? 0.3 : 1));
         return { series, colors, monthLabels, opacity, average, peak };
-    }, [points, categoryColors, v2, dimmed, partial]);
+    }, [points, categoryColors, dimmed, partial]);
 
     const options: ApexOptions = useMemo(
         () => ({
@@ -137,63 +127,52 @@ export function CategorySpendChart({
             plotOptions: { bar: { columnWidth: "55%", borderRadius: 2 } },
             stroke: { width: 0 },
             xaxis: { categories: monthLabels },
-            ...(v2
-                ? {
-                      fill: { opacity },
-                      annotations: {
-                          yaxis: average
-                              ? [
-                                    {
-                                        y: Math.round(average),
-                                        strokeDashArray: 4,
-                                        borderColor: palette.graphite,
-                                        label: {
-                                            text: `promedio ${mxn(average)}`,
-                                            position: "left",
-                                            textAnchor: "start",
-                                            offsetY: -4,
-                                            borderWidth: 0,
-                                            style: {
-                                                background: "transparent",
-                                                color: palette.graphite,
-                                                fontSize: "11px",
-                                            },
-                                        },
-                                    },
-                                ]
-                              : [],
-                          points: peak
-                              ? [
-                                    {
-                                        x: peak.label,
-                                        y: peak.total,
-                                        marker: { size: 0 },
-                                        label: {
-                                            text: mxn(peak.total),
-                                            borderWidth: 0,
-                                            offsetY: -4,
-                                            style: {
-                                                background: "transparent",
-                                                color: palette.ink,
-                                                fontSize: "11px",
-                                            },
-                                        },
-                                    },
-                                ]
-                              : [],
-                      },
-                  }
-                : {}),
-            yaxis: { labels: { formatter: (v: number) => compactMxn(v) } },
-            legend: {
-                show: !v2,
-                position: "top",
-                horizontalAlign: "left",
-                fontSize: "13px",
-                markers: { size: 6, shape: "circle" },
-                itemMargin: { horizontal: 10 },
-                offsetY: -4,
+            fill: { opacity },
+            annotations: {
+                yaxis: average
+                    ? [
+                          {
+                              y: Math.round(average),
+                              strokeDashArray: 4,
+                              borderColor: palette.graphite,
+                              label: {
+                                  text: `promedio ${mxn(average)}`,
+                                  position: "left",
+                                  textAnchor: "start",
+                                  offsetY: -4,
+                                  borderWidth: 0,
+                                  style: {
+                                      background: "transparent",
+                                      color: palette.graphite,
+                                      fontSize: "11px",
+                                  },
+                              },
+                          },
+                      ]
+                    : [],
+                points: peak
+                    ? [
+                          {
+                              x: peak.label,
+                              y: peak.total,
+                              marker: { size: 0 },
+                              label: {
+                                  text: mxn(peak.total),
+                                  borderWidth: 0,
+                                  offsetY: -4,
+                                  style: {
+                                      background: "transparent",
+                                      color: palette.ink,
+                                      fontSize: "11px",
+                                  },
+                              },
+                          },
+                      ]
+                    : [],
             },
+            yaxis: { labels: { formatter: (v: number) => compactMxn(v) } },
+            // The chips above are the legend.
+            legend: { show: false },
             // Per-layer, not shared: the tooltip names the thing a click would
             // filter to, so hovering previews the gesture. The month's total
             // rides along — the layer answers "on what", the total "how much",
@@ -220,13 +199,13 @@ export function CategorySpendChart({
                         </div>`;
                 },
             },
-            // v2: a click filters the chart down to that layer, which is the
+            // A click filters the chart down to that layer, which is the
             // feedback; darkening it as well would muddy the category's own color.
             states: {
-                active: { filter: v2 ? { type: "none", value: 0 } : { type: "darken", value: 0.6 } },
+                active: { filter: { type: "none", value: 0 } },
             },
         }),
-        [colors, monthLabels, onPick, v2, opacity, average, peak]
+        [colors, monthLabels, onPick, opacity, average, peak]
     );
 
     return (

@@ -5,7 +5,6 @@ import type { ApexOptions } from "apexcharts";
 import { chart, colors } from "@/design/tokens";
 import { compactMxn, monthLabel, mxn } from "@/lib/format";
 import { ApexChart } from "@/components/charts/apex/ApexChart";
-import { useChartsV2 } from "@/lib/chartsV2";
 import {
     monthKeyToDate,
     monthName,
@@ -47,14 +46,13 @@ export function PorMesChart({
     openKey: string | null;
     onPick: (key: string) => void;
     height?: number;
-    /** v2: the month the title names, lit until the user opens another. */
+    /** The month the title names, lit until the user opens another. */
     focusKey?: string | null;
-    /** v2: the running month, drawn faint and labelled "al {día}". */
+    /** The running month, drawn faint and labelled "al {día}". */
     partial?: PartialMonth | null;
-    /** v2: the title's sentence, for screen readers. */
+    /** The title's sentence, for screen readers. */
     ariaLabel?: string;
 }) {
-    const v2 = useChartsV2();
     const withYear = spansYears(months.map((m) => m.key));
     const labels = useMemo(
         () =>
@@ -62,12 +60,12 @@ export function PorMesChart({
                 const label = monthLabel(monthKeyToDate(m.key), withYear);
                 // A two-line category: the month, then how far into it the
                 // record goes, so the short bar reads as unfinished, not low.
-                return v2 && partial?.key === m.key ? [label, `al ${partial.day}`] : label;
+                return partial?.key === m.key ? [label, `al ${partial.day}`] : label;
             }),
-        [months, withYear, v2, partial]
+        [months, withYear, partial]
     );
-    // v2: the user's pick, else the month the title is about.
-    const litKey = v2 ? (openKey ?? focusKey) : openKey;
+    // The user's pick, else the month the title is about.
+    const litKey = openKey ?? focusKey;
     const litIndex = months.findIndex((m) => m.key === litKey);
 
     const options: ApexOptions = useMemo(
@@ -84,7 +82,7 @@ export function PorMesChart({
             colors: months.map((m) =>
                 m.key === litKey
                     ? colors.signal
-                    : v2 && m.key === partial?.key
+                    : m.key === partial?.key
                       ? withAlpha(chart.neutral[3]!, 0.45)
                       : chart.neutral[3]!
             ),
@@ -97,10 +95,10 @@ export function PorMesChart({
                 },
             },
             stroke: { width: 0 },
-            // v2: the lit column carries its figure, so the selection is
+            // The lit column carries its figure, so the selection is
             // not colour alone and the title's number is on the chart.
             dataLabels:
-                v2 && litIndex >= 0
+                litIndex >= 0
                     ? {
                           enabled: true,
                           formatter: (v: number, o: { dataPointIndex: number }) =>
@@ -111,26 +109,13 @@ export function PorMesChart({
                       }
                     : { enabled: false },
             legend: { show: false },
-            xaxis: v2
-                ? { categories: labels }
-                : {
-                      categories: labels,
-                      labels: { style: { colors: colors.graphite, fontSize: "12px" } },
-                      axisTicks: { show: false },
-                  },
+            xaxis: { categories: labels },
             yaxis: {
                 min: 0,
                 forceNiceScale: true,
                 labels: { formatter: (v: number) => compactMxn(v) },
             },
             grid: { xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } } },
-            // The theme's own states; v1 restates them.
-            ...(!v2 && {
-                states: {
-                    hover: { filter: { type: "lighten", value: 0.04 } },
-                    active: { filter: { type: "none", value: 0 } },
-                },
-            }),
             annotations:
                 average > 0
                     ? {
@@ -140,15 +125,15 @@ export function PorMesChart({
                                   strokeDashArray: 4,
                                   borderColor: colors.muted,
                                   label: {
-                                      text: v2 ? `promedio ${mxn(average)}` : "promedio",
+                                      text: `promedio ${mxn(average)}`,
                                       position: "right",
                                       textAnchor: "end",
                                       offsetY: -4,
                                       borderWidth: 0,
                                       style: {
                                           background: "transparent",
-                                          // v2: Ash is 2.4:1, too faint to read.
-                                          color: v2 ? colors.graphite : colors.ash,
+                                          // Graphite: Ash is 2.4:1, too faint to read.
+                                          color: colors.graphite,
                                           fontSize: "10px",
                                       },
                                   },
@@ -163,10 +148,10 @@ export function PorMesChart({
                     const m = months[dataPointIndex];
                     if (!m) return "";
                     const name = monthName(m.key, withYear);
-                    // v2: where the month sits against the mean, or why it
+                    // Where the month sits against the mean, or why it
                     // is not compared at all.
                     let vs = "";
-                    if (v2 && m.count > 0) {
+                    if (m.count > 0) {
                         if (partial?.key === m.key) vs = `al ${partial.day}, fuera del promedio`;
                         else if (average > 0) {
                             const d = Math.round(((m.amount - average) / average) * 100);
@@ -190,7 +175,7 @@ export function PorMesChart({
                 },
             },
         }),
-        [months, labels, average, litKey, litIndex, onPick, withYear, v2, partial]
+        [months, labels, average, litKey, litIndex, onPick, withYear, partial]
     );
 
     const series = useMemo(

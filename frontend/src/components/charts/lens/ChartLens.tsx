@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { LensCallout } from "./LensCallout";
 import { useLensAnnotations, type AppliedAnchor } from "./useLensAnnotations";
 import type { Lectura, LensFocus, LensGroup } from "./types";
@@ -37,19 +36,17 @@ export function ChartLens({
     children: ReactNode;
 }) {
     const rootRef = useRef<HTMLDivElement>(null);
-    // v2: the OS setting reduces motion too, not only the dev toggle. Read
+    // The OS setting reduces motion too, not only the dev toggle. Read
     // after mount — there is no matchMedia on the server.
-    const v2 = useChartsV2();
     const [osReduced, setOsReduced] = useState(false);
     useEffect(() => {
-        if (!v2) return;
         const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
         setOsReduced(mq.matches);
         const onChange = () => setOsReduced(mq.matches);
         mq.addEventListener("change", onChange);
         return () => mq.removeEventListener("change", onChange);
-    }, [v2]);
-    const reduced = reducedMotion || (v2 && osReduced);
+    }, []);
+    const reduced = reducedMotion || osReduced;
 
     const focused: Lectura | null = useMemo(() => {
         if (!focus) return null;

@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import { memo, useMemo, useState } from "react";
 import type { ApexOptions } from "apexcharts";
 import { ChartSkeleton } from "@/components/ui";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { baseOptions } from "./theme";
 
 /**
@@ -48,7 +47,7 @@ export type ApexChartProps = {
     height?: number | string;
     width?: number | string;
     className?: string;
-    /** What the chart says, for screen readers (v2): the finding, not "gráfica". */
+    /** What the chart says, for screen readers: the finding, not "gráfica". */
     ariaLabel?: string;
 };
 
@@ -77,18 +76,21 @@ function ApexChartInner({
     // 280px chart is a 40px jump the moment the real one lands.
     const [ready, setReady] = useState(false);
 
-    const v2 = useChartsV2();
     const merged = useMemo(() => {
         const out = deepMerge(baseOptions as Plain, {
             ...(options as Plain),
             chart: { ...((options?.chart ?? {}) as Plain), type },
         }) as ApexOptions;
-        // v2: Apex animates from JS, so the CSS media query never reaches it.
-        if (v2 && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        // Apex animates from JS, so the CSS media query never reaches it.
+        // Guarded: this memo also runs in the server render.
+        if (
+            typeof window !== "undefined" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
             out.chart = { ...out.chart, animations: { enabled: false } };
         }
         return out;
-    }, [options, type, v2]);
+    }, [options, type]);
 
     const reserved = typeof height === "number" ? height : undefined;
 
@@ -98,8 +100,8 @@ function ApexChartInner({
         // make the card twice as tall for exactly that frame.
         <div
             style={{ position: "relative", minWidth: 0, minHeight: reserved }}
-            role={v2 && ariaLabel ? "img" : undefined}
-            aria-label={v2 ? ariaLabel : undefined}
+            role={ariaLabel ? "img" : undefined}
+            aria-label={ariaLabel}
         >
             {!ready && (
                 <div className="absolute inset-0" aria-hidden>

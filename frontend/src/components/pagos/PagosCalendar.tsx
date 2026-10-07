@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { RecurringItem } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { dayLabel, fullDayLabel, mxn } from "@/lib/format";
 import { today } from "@/components/recurrentes/projection";
 import {
@@ -65,8 +64,7 @@ export function PagosCalendar({
         return { current: at(0), next: at(1) };
     }, [items, month, card]);
     const view = months.current.view;
-    const v2 = useChartsV2();
-    // v2: the three heaviest days of the month get the larger dot, so the
+    // The three heaviest days of the month get the larger dot, so the
     // grid says where the money goes before a row is read.
     const heavy = useMemo(() => {
         const days = view.cells
@@ -113,7 +111,7 @@ export function PagosCalendar({
                 <div className="flex items-center justify-between">
                     <MonthChevron direction="back" disabled={!canBack} onClick={() => turn(-1)} />
                     <p className="text-center text-body-sm font-medium text-ink">
-                        {(v2 && monthFinding(months.current.lines)) || monthTitle(month)}
+                        {monthFinding(months.current.lines) || monthTitle(month)}
                     </p>
                     <MonthChevron direction="forward" disabled={!canForward} onClick={() => turn(1)} />
                 </div>
@@ -130,14 +128,13 @@ export function PagosCalendar({
                             cell={cell}
                             selected={selected === cell.iso && !cell.outside}
                             onPick={() => setPicked(cell.iso)}
-                            v2={v2}
                             heavy={heavy.has(cell.iso)}
                             cardDue={cardDue === cell.iso && !cell.outside}
                         />
                     ))}
                 </div>
 
-                <Legend v2={v2} cardDue={v2 && cardDue !== null} />
+                <Legend cardDue={cardDue !== null} />
             </div>
 
             <div className="min-w-0 space-y-4">
@@ -153,7 +150,7 @@ export function PagosCalendar({
                         month={months.next.month}
                         lines={months.next.lines}
                         onOpen={() => turn(1)}
-                        against={v2 ? sumOf(months.current.lines) : null}
+                        against={sumOf(months.current.lines)}
                     />
                 )}
             </div>
@@ -163,7 +160,7 @@ export function PagosCalendar({
 
 /** Under the grid, so the column beside it is matched by the grid and its
  *  key rather than leaving a blank under the dates. */
-function Legend({ v2, cardDue }: { v2: boolean; cardDue: boolean }) {
+function Legend({ cardDue }: { cardDue: boolean }) {
     return (
         <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-label text-graphite">
             <li className="inline-flex items-center gap-1.5">
@@ -171,10 +168,7 @@ function Legend({ v2, cardDue }: { v2: boolean; cardDue: boolean }) {
                 Programado
             </li>
             <li className="inline-flex items-center gap-1.5">
-                <span
-                    aria-hidden
-                    className={cn("h-2 w-2 rounded-full", v2 ? "border border-graphite" : "bg-muted")}
-                />
+                <span aria-hidden className="h-2 w-2 rounded-full border border-graphite" />
                 Registrado
             </li>
             {cardDue && (
@@ -191,15 +185,13 @@ function Day({
     cell,
     selected,
     onPick,
-    v2,
     heavy,
     cardDue,
 }: {
     cell: DayCell;
     selected: boolean;
     onPick: () => void;
-    v2: boolean;
-    /** v2: one of the month's three heaviest days. */
+    /** One of the month's three heaviest days. */
     heavy: boolean;
     /** The card statement's due date falls on this day. */
     cardDue: boolean;
@@ -213,7 +205,7 @@ function Day({
               hasDue ? ` · programado ${mxn(cell.due)}` : ""
           }${hasReg ? ` · registrado ${mxn(cell.registered)}` : ""}${
               names.length ? ` · ${names.join(", ")}` : ""
-          }${v2 && cardDue ? " · fecha límite de la tarjeta" : ""}`;
+          }${cardDue ? " · fecha límite de la tarjeta" : ""}`;
 
     return (
         <button
@@ -235,32 +227,25 @@ function Day({
                     cell.today && "bg-soot text-paper",
                     // The one day a missed payment costs interest: ringed in
                     // Signal, the focus colour, on top of whatever else it is.
-                    v2 && cardDue && "ring-2 ring-signal"
+                    cardDue && "ring-2 ring-signal"
                 )}
             >
                 {cell.date.getDate()}
             </span>
-            {/* One dot, whichever kind of charge the day holds: a projected one
-                in Ink, a landed one in Muted. A day with both shows the one
-                still ahead — that is the one that can still be acted on. */}
-            {(hasDue || hasReg) &&
-                (v2 ? (
-                    // v2: filled for what is still ahead, hollow for what
-                    // landed — shape, not a tone step; larger on heavy days.
-                    <span
-                        aria-hidden
-                        className={cn(
-                            "mt-0.5 rounded-full",
-                            heavy ? "h-1.5 w-1.5" : "h-1 w-1",
-                            hasDue ? "bg-ink" : "border border-graphite"
-                        )}
-                    />
-                ) : (
-                    <span
-                        aria-hidden
-                        className={cn("mt-0.5 h-1 w-1 rounded-full", hasDue ? "bg-ink" : "bg-muted")}
-                    />
-                ))}
+            {/* One dot, whichever kind of charge the day holds: filled Ink for
+                what is still ahead, hollow for what landed — shape, not a tone
+                step; larger on heavy days. A day with both shows the one still
+                ahead — that is the one that can still be acted on. */}
+            {(hasDue || hasReg) && (
+                <span
+                    aria-hidden
+                    className={cn(
+                        "mt-0.5 rounded-full",
+                        heavy ? "h-1.5 w-1.5" : "h-1 w-1",
+                        hasDue ? "bg-ink" : "border border-graphite"
+                    )}
+                />
+            )}
         </button>
     );
 }
@@ -353,8 +338,8 @@ function NextMonth({
     month: Date;
     lines: DueLine[];
     onOpen: () => void;
-    /** v2: the month on the grid's total, to state the preview against. */
-    against: number | null;
+    /** The month on the grid's total, to state the preview against. */
+    against: number;
 }) {
     const name = monthHeading(month);
     const total = sumOf(lines);
@@ -378,7 +363,7 @@ function NextMonth({
                     />
                 </span>
             </span>
-            {against !== null && lines.length > 0 && (
+            {lines.length > 0 && (
                 <span className="tabular block text-label text-graphite">
                     {estimate(lines)}
                     {mxn(total)} · {total === against ? "igual que este mes" : `${total > against ? "+" : "−"}${mxn(Math.abs(total - against))} vs este mes`}
@@ -467,8 +452,8 @@ function estimate(lines: DueLine[]): string {
 }
 
 /**
- * v2 heading: the month's sum, how many payments make it, and the day the
- * largest lands. `null` on an empty month, which keeps the plain title.
+ * The grid's heading: the month's sum, how many payments make it, and the
+ * day the largest lands. `null` on an empty month, which keeps the plain title.
  */
 function monthFinding(lines: DueLine[]): string | null {
     if (!lines.length) return null;

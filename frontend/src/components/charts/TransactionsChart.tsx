@@ -6,7 +6,6 @@ import type { Transaction } from "@/lib/api";
 import { chart as chartTokens, colors } from "@/design/tokens";
 import { categoryColor, categoryName, type CategoryInfo } from "@/lib/categories";
 import { compactMxn, dayLabel, monthLabel, mxn, mxn2 } from "@/lib/format";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { ApexChart } from "./apex/ApexChart";
 
 const CHART_ID = "tx-chart";
@@ -57,7 +56,7 @@ export function dateToMs(isoDate: string): number {
 
 const toMs = dateToMs;
 
-/** v2: past this many categories the smallest go to one Ash series — a legend
+/** Past this many categories the smallest go to one Ash series — a legend
  *  of more hues than that is read by nobody. */
 const MAX_CATEGORIES = 8;
 
@@ -128,12 +127,11 @@ export function TransactionsChart({
      *  selection would cover the whole plot and say nothing. */
     zoomRange?: ChartRange | null;
     height?: number;
-    /** v2, categoria mode: the category the reading is about; the others fade. */
+    /** Categoria mode: the category the reading is about; the others fade. */
     focusCategoryId?: string | null;
-    /** v2: the title's sentence, for screen readers. */
+    /** The title's sentence, for screen readers. */
     ariaLabel?: string;
 }) {
-    const v2 = useChartsV2();
     const byCategory = colorMode === "categoria" && categories !== null;
 
     const { series, pointIds, idToPoint, seriesColors, seriesOpacity, stackedBuckets, firstBucket } = useMemo(() => {
@@ -148,8 +146,8 @@ export function TransactionsChart({
             let names: string[];
             let seriesColors: string[];
             let seriesOpacity: number[] | null = null;
-            if (byCategory && v2) {
-                // v2: a category is its taxonomy color, as in every other
+            if (byCategory) {
+                // A category is its taxonomy color, as in every other
                 // view. Series follow each category's total over the whole
                 // window; past MAX_CATEGORIES the smallest share one Ash
                 // series. The focused category keeps its own color and the
@@ -189,21 +187,6 @@ export function TransactionsChart({
                 seriesOpacity = lit
                     ? [...named.map(([k]) => (k === focusCategoryId ? 1 : 0.3)), ...(rest.length ? [0.3] : [])]
                     : null;
-            } else if (byCategory) {
-                const keys = new Map<string | null, Transaction[]>();
-                for (const t of pool) {
-                    const k = t.category_id ?? null;
-                    const g = keys.get(k);
-                    if (g) g.push(t);
-                    else keys.set(k, [t]);
-                }
-                // Biggest group first so the legend leads with what dominates.
-                const entries = Array.from(keys.entries()).sort(
-                    (a, b) => b[1].length - a[1].length
-                );
-                groups = entries.map(([, txns]) => txns);
-                names = entries.map(([k]) => categoryName(categories, k));
-                seriesColors = entries.map(([k]) => categoryColor(categories, k));
             } else {
                 groups = showIncome
                     ? [
@@ -290,13 +273,13 @@ export function TransactionsChart({
 
         // Unreachable: both modes return above. Keeps TS's control-flow happy.
         throw new Error(`unknown chart mode: ${mode}`);
-    }, [transactions, showIncome, mode, byCategory, categories, grain, v2, focusCategoryId]);
+    }, [transactions, showIncome, mode, byCategory, categories, grain, focusCategoryId]);
 
-    // v2: the typical cargo, drawn as a rule so an outlier reads as "far above
+    // The typical cargo, drawn as a rule so an outlier reads as "far above
     // normal", not just "high".
     const median = useMemo(
-        () => (v2 && mode === "scatter" ? medianAmount(transactions) : null),
-        [v2, mode, transactions]
+        () => (mode === "scatter" ? medianAmount(transactions) : null),
+        [mode, transactions]
     );
 
     // Both handlers live in refs so the options memo does not rebuild every
@@ -325,7 +308,7 @@ export function TransactionsChart({
     // declaration order — so the effect re-applies onto the fresh chart.
     useEffect(() => {
         lastExeced.current = null;
-    }, [mode, showIncome, colorMode, zoomRange, v2, focusCategoryId]);
+    }, [mode, showIncome, colorMode, zoomRange, focusCategoryId]);
 
     // Row → mark. Data or mode changes rebuild the chart, so re-run then too.
     useEffect(() => {
@@ -493,23 +476,22 @@ export function TransactionsChart({
                 },
                 // Nothing to select in an aggregate.
                 states: { active: { filter: { type: "none", value: 0 } } },
-                // v2: the net is a running sum that starts at zero on the
+                // The net is a running sum that starts at zero on the
                 // window's first bucket; the zero is drawn and says so.
-                ...(v2 &&
-                    firstBucket && {
-                        annotations: {
-                            yaxis: [
-                                ruleAnnotation(
-                                    0,
-                                    `neto acumulado desde ${
-                                        grain === "day"
-                                            ? dayLabel(new Date(toMs(firstBucket)))
-                                            : monthLabel(new Date(toMs(`${firstBucket}-01`)), true)
-                                    }`
-                                ),
-                            ],
-                        },
-                    }),
+                ...(firstBucket && {
+                    annotations: {
+                        yaxis: [
+                            ruleAnnotation(
+                                0,
+                                `neto acumulado desde ${
+                                    grain === "day"
+                                        ? dayLabel(new Date(toMs(firstBucket)))
+                                        : monthLabel(new Date(toMs(`${firstBucket}-01`)), true)
+                                }`
+                            ),
+                        ],
+                    },
+                }),
             };
         }
 
@@ -571,7 +553,7 @@ export function TransactionsChart({
 
         // Unreachable: both modes return above.
         throw new Error(`unknown chart mode: ${mode}`);
-    }, [mode, grain, showIncome, byCategory, categories, transactions, seriesColors, stackedBuckets, brushable, zoomRange, v2, median, firstBucket, seriesOpacity]);
+    }, [mode, grain, showIncome, byCategory, categories, transactions, seriesColors, stackedBuckets, brushable, zoomRange, median, firstBucket, seriesOpacity]);
 
     const type = mode === "scatter" ? "scatter" : "line";
     return (
@@ -582,8 +564,8 @@ export function TransactionsChart({
         <ApexChart
             // showIncome and colorMode are in the key too: both change the
             // series structure or color strategy, both remount-worthy.
-            // v2 regroups categoria mode around its focus: also a new chart.
-            key={`${mode}-${showIncome}-${colorMode}-${zoomRange?.start ?? "all"}-${zoomRange?.end ?? "all"}${v2 ? `-v2-${focusCategoryId ?? ""}` : ""}`}
+            // Categoria mode regroups around its focus: also a new chart.
+            key={`${mode}-${showIncome}-${colorMode}-${zoomRange?.start ?? "all"}-${zoomRange?.end ?? "all"}-${focusCategoryId ?? ""}`}
             type={type}
             series={series}
             options={options}
@@ -593,7 +575,7 @@ export function TransactionsChart({
     );
 }
 
-/** v2: a dashed reference rule with its value written on it, in Graphite —
+/** A dashed reference rule with its value written on it, in Graphite —
  *  the reference is stone, never Signal. */
 function ruleAnnotation(y: number, text: string) {
     return {

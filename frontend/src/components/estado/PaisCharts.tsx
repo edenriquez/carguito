@@ -30,7 +30,7 @@ export function RubrosChart({ rows, decile, decileLabel, highlight }: {
     decileLabel: string;
     highlight: Rubro | null;
 }) {
-    const { box, bind, node, v2 } = useChartTip();
+    const { box, bind, node } = useChartTip();
     const max = Math.max(...rows.flatMap((r) => [r.share, r.decileShare])) || 1;
     return (
         <div ref={box} className="relative">
@@ -47,20 +47,13 @@ export function RubrosChart({ rows, decile, decileLabel, highlight }: {
                         <div key={r.rubro} className="mb-2 break-inside-avoid" {...bind(`${RUBRO_LABELS[r.rubro]} · tú ${mxn(r.amount)} al mes · decil ${decileLabel} ${mxn(rubroPesos(r.rubro, decile))} al mes`)}>
                             <div className="flex items-baseline justify-between gap-3 text-label">
                                 <span className={cn("min-w-0 truncate", on ? "font-medium text-ink" : "text-graphite")}>{RUBRO_LABELS[r.rubro]}</span>
-                                {v2 ? (
-                                    // Who is who in words, not only in colour; the
-                                    // highlighted rubro carries the gap the title states.
-                                    <span className="shrink-0 tabular">
-                                        <span className={on ? "text-signalDeep" : "text-graphite"}>tú {pct(r.share)}</span>
-                                        <span className="text-graphite"> · decil {pct(r.decileShare)}</span>
-                                        {on && <span className="font-medium text-ink"> · {ppGap(r.share - r.decileShare)} vs tu decil</span>}
-                                    </span>
-                                ) : (
-                                    <span className="shrink-0 tabular">
-                                        <span className={on ? "text-edge" : "text-graphite"}>{pct(r.share)}</span>
-                                        <span className="text-ash"> · {pct(r.decileShare)}</span>
-                                    </span>
-                                )}
+                                {/* Who is who in words, not only in colour; the
+                                    highlighted rubro carries the gap the title states. */}
+                                <span className="shrink-0 tabular">
+                                    <span className={on ? "text-signalDeep" : "text-graphite"}>tú {pct(r.share)}</span>
+                                    <span className="text-graphite"> · decil {pct(r.decileShare)}</span>
+                                    {on && <span className="font-medium text-ink"> · {ppGap(r.share - r.decileShare)} vs tu decil</span>}
+                                </span>
                             </div>
                             <div className="mt-1 space-y-0.5">
                                 <div className="h-1.5 overflow-hidden rounded-full bg-fog">
@@ -82,10 +75,10 @@ export function RubrosChart({ rows, decile, decileLabel, highlight }: {
 /* ---------------------------------------------------------------- Canasta */
 
 function Persons({ value, label, tip, on }: { value: number; label: string; tip: string; on: boolean }) {
-    const { box, bind, node, v2 } = useChartTip();
-    // v2: both rows are the user's own money, so the second is Signal too,
-    // a lighter step of it, not the stone of "the rest".
-    const fill = on ? colors.signal : v2 ? chart.signalTint[2] : colors.graphite;
+    const { box, bind, node } = useChartTip();
+    // Both rows are the user's own money, so the second is Signal too, a
+    // lighter step of it, not the stone of "the rest".
+    const fill = on ? colors.signal : chart.signalTint[2];
     const whole = Math.floor(value);
     const part = value - whole;
     const shown = Math.min(whole, 12);
@@ -93,7 +86,7 @@ function Persons({ value, label, tip, on }: { value: number; label: string; tip:
         <div ref={box} className="relative" {...bind(tip)}>
             <div className="flex items-baseline justify-between text-body-sm">
                 <span className={on ? "text-ink" : "text-graphite"}>{label}</span>
-                <span className={cn("tabular", on ? (v2 ? "text-signalDeep" : "text-edge") : "text-graphite")}>{value.toFixed(1)} personas</span>
+                <span className={cn("tabular", on ? "text-signalDeep" : "text-graphite")}>{value.toFixed(1)} personas</span>
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1">
                 {Array.from({ length: shown }, (_, i) => (
@@ -138,22 +131,22 @@ export function InpcChart({ points, user }: {
     /** The user's own index at a month, on the same 100 base; null without tickets. */
     user: { key: string; value: number; label: string } | null;
 }) {
-    const { box, bind, node, v2, accent } = useChartTip();
+    const { box, bind, node } = useChartTip();
     const base = 130, top = 20;
     const values = points.flatMap((p) => [p.general, p.alimentos]).concat(user ? [user.value] : []);
     const lo = Math.min(100, ...values), hi = Math.max(100, ...values);
     const pad = Math.max(1, (hi - lo) * 0.15);
     const y = (v: number) => base - ((base - top) * (v - (lo - pad))) / (hi + pad - (lo - pad));
-    // v2 keeps ~140 units at the right for the lines' own labels.
-    const width = v2 ? 440 : 560;
+    // ~140 units kept at the right for the lines' own labels.
+    const width = 440;
     const step = width / Math.max(1, points.length - 1);
     const x = (i: number) => 20 + i * step;
     const path = (pick: (p: InpcPoint) => number) => points.map((p, i) => `${i ? "L" : "M"}${x(i)} ${y(pick(p))}`).join(" ");
     const ui = user ? points.findIndex((p) => p.key === user.key) : -1;
-    // v2: Signal is the user; the country's two series are stone, food the
+    // Signal is the user; the country's two series are stone, food the
     // darker since the card is about food.
-    const foodStroke = v2 ? colors.soot : colors.signal;
-    const generalStroke = v2 ? colors.ash : colors.graphite;
+    const foodStroke = colors.soot;
+    const generalStroke = colors.ash;
     const last = points[points.length - 1];
     // The two end labels: the higher line's sits above its point and the
     // lower one's below, in em, so they never overlap at any text size.
@@ -163,9 +156,7 @@ export function InpcChart({ points, user }: {
               { name: "General", v: last.general, fill: colors.graphite },
           ].sort((a, b) => b.v - a.v)
         : [];
-    const userAnchor = ui < 0 ? "middle" : v2
-        ? x(ui) < 120 ? "start" : x(ui) > width - 60 ? "end" : "middle"
-        : ui === points.length - 1 ? "end" : "middle";
+    const userAnchor = ui < 0 ? "middle" : x(ui) < 120 ? "start" : x(ui) > width - 60 ? "end" : "middle";
     return (
         <div ref={box} className="relative">
             <svg viewBox="0 0 600 160" className="w-full overflow-visible" role="img" aria-label="Índice de precios, mes a mes, con base 100 en el primer mes">
@@ -173,7 +164,7 @@ export function InpcChart({ points, user }: {
                 <text x={10} y={y(100) - 5} style={{ ...TEXT, fill: colors.ash }}>100 · {points[0] ? monthShort(points[0].key) : ""}</text>
                 <path d={path((p) => p.general)} pathLength={1} className="lx-draw" fill="none" stroke={generalStroke} strokeWidth={2} strokeDasharray="1" />
                 <path d={path((p) => p.alimentos)} pathLength={1} className="lx-draw" style={{ transitionDelay: "200ms" }} fill="none" stroke={foodStroke} strokeWidth={2.5} strokeDasharray="1" />
-                {v2 && last && ends.map((e, i) => (
+                {last && ends.map((e, i) => (
                     <text key={e.name} x={x(points.length - 1) + 8} y={y(e.v)} dy={i === 0 ? "-0.2em" : "0.9em"} style={{ ...TEXT, fill: e.fill }}>
                         {e.name} <tspan fontWeight={500}>{e.v.toFixed(1)}</tspan>
                     </text>
@@ -187,24 +178,16 @@ export function InpcChart({ points, user }: {
                 ))}
                 {user && ui >= 0 && (
                     <g className="lx-fade" style={{ transitionDelay: "1000ms" }} {...bind(`${user.label} · ${user.value.toFixed(1)}`)}>
-                        <circle cx={x(ui)} cy={y(user.value)} r={7} fill={v2 ? colors.signal : colors.ink} />
-                        <text x={x(ui)} y={y(user.value) - 14} textAnchor={userAnchor} style={{ ...TEXT, fill: v2 ? accent : colors.ink, fontWeight: 500 }}>{user.label}</text>
+                        <circle cx={x(ui)} cy={y(user.value)} r={7} fill={colors.signal} />
+                        <text x={x(ui)} y={y(user.value) - 14} textAnchor={userAnchor} style={{ ...TEXT, fill: colors.signalDeep, fontWeight: 500 }}>{user.label}</text>
                     </g>
                 )}
             </svg>
-            {v2 ? (
-                // The lines are labelled where they end; what is left to say
-                // is what the names stand for and that the axis does not start at 0.
-                <p className="mt-1 text-label text-graphite">
-                    Alimentos es el INPC de alimentos, bebidas y tabaco. Eje recortado: empieza en {(lo - pad).toFixed(1)}, no en 0.
-                </p>
-            ) : (
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-label text-graphite">
-                    <span className="flex items-center gap-1.5"><i className="inline-block h-0.5 w-4" style={{ background: colors.signal }} />INPC alimentos, bebidas y tabaco</span>
-                    <span className="flex items-center gap-1.5"><i className="inline-block h-0.5 w-4" style={{ background: colors.graphite }} />INPC general</span>
-                    {user && <span className="flex items-center gap-1.5"><i className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: colors.ink }} />Tus tickets</span>}
-                </div>
-            )}
+            {/* The lines are labelled where they end; what is left to say is
+                what the names stand for and that the axis does not start at 0. */}
+            <p className="mt-1 text-label text-graphite">
+                Alimentos es el INPC de alimentos, bebidas y tabaco. Eje recortado: empieza en {(lo - pad).toFixed(1)}, no en 0.
+            </p>
             {node}
         </div>
     );

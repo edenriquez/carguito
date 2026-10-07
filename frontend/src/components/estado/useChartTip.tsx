@@ -1,27 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FocusEvent, type MouseEvent, type PointerEvent } from "react";
-import { colors } from "@/design/tokens";
-import { useChartsV2 } from "@/lib/chartsV2";
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type PointerEvent } from "react";
 
 /**
  * One small ink tooltip per chart, positioned inside the chart's own box so it
  * scrolls with it. `bind(text)` returns the handlers for a mark.
  *
- * In «Gráficas v2» the same tip opens on touch and on keyboard focus (each
- * bound mark becomes a tab stop unless `focusable` is false), a tap outside
- * the chart closes it, and the box carries `--lx-fs`: how much the SVG text
- * has to grow so an 11-unit label in a 600-wide viewBox still reads as ~11px
- * on a phone. `TEXT` reads that variable; v1 never sets it, so it stays 11.
+ * The same tip opens on touch and on keyboard focus (each bound mark becomes
+ * a tab stop unless `focusable` is false), a tap outside the chart closes it,
+ * and the box carries `--lx-fs`: how much the SVG text has to grow so an
+ * 11-unit label in a 600-wide viewBox still reads as ~11px on a phone. `TEXT`
+ * reads that variable.
  */
 export function useChartTip() {
-    const v2 = useChartsV2();
     const box = useRef<HTMLDivElement>(null);
     const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
 
     useEffect(() => {
         const el = box.current;
-        if (!v2 || !el) return;
+        if (!el) return;
         const measure = () => {
             const w = el.getBoundingClientRect().width;
             // Capped at 18 units: past that the labels of the denser charts
@@ -35,26 +32,25 @@ export function useChartTip() {
             ro?.disconnect();
             el.style.removeProperty("--lx-fs");
         };
-    }, [v2]);
+    }, []);
 
     // A tap anywhere outside the chart closes a tip a tap opened.
     useEffect(() => {
-        if (!v2 || !tip) return;
+        if (!tip) return;
         const close = (e: Event) => {
             if (!box.current?.contains(e.target as Node)) setTip(null);
         };
         document.addEventListener("pointerdown", close);
         return () => document.removeEventListener("pointerdown", close);
-    }, [v2, tip]);
+    }, [tip]);
 
     const bind = useCallback(
         (text: string, focusable = true) => {
-            const at = (e: MouseEvent | PointerEvent) => {
+            const at = (e: PointerEvent) => {
                 const r = box.current?.getBoundingClientRect();
                 if (!r) return;
                 setTip({ x: e.clientX - r.left, y: e.clientY - r.top, text });
             };
-            if (!v2) return { onMouseMove: at, onMouseLeave: () => setTip(null) };
             return {
                 onPointerDown: at,
                 onPointerMove: at,
@@ -74,7 +70,7 @@ export function useChartTip() {
                 }),
             };
         },
-        [v2]
+        []
     );
 
     const node = tip ? (
@@ -87,7 +83,5 @@ export function useChartTip() {
         </div>
     ) : null;
 
-    // `accent` is the Signal family as text: Edge in v1, Signal Deep (AA on
-    // Canvas) in v2 — Edge is 3.16:1 and only meant for a Wash pill.
-    return { box, bind, node, v2, accent: v2 ? colors.signalDeep : colors.edge };
+    return { box, bind, node };
 }

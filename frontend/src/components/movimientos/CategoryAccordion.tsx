@@ -5,7 +5,6 @@ import { ChevronRight, CircleDashed, RotateCw } from "lucide-react";
 import type { AttentionKind, Transaction } from "@/lib/api";
 import { LENS_KIND_LABELS } from "@/components/charts/lens/types";
 import { cn } from "@/lib/cn";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { useStatementBanks } from "@/lib/banks";
 import {
     formatCategoryPath,
@@ -16,7 +15,6 @@ import { categoryIcon } from "@/lib/categoryIcons";
 import { dayLabel, mxn2 } from "@/lib/format";
 import { parsePeriodKey } from "@/lib/metrics";
 import {
-    barFill,
     pct,
     sliceColor,
     type CategorySlice,
@@ -47,7 +45,6 @@ import {
  */
 export function CategoryAccordion({
     slices,
-    barOrder,
     openKey,
     onToggle,
     onVerMas,
@@ -58,7 +55,6 @@ export function CategoryAccordion({
     aux,
 }: {
     slices: CategorySlice[];
-    barOrder: CategorySlice[];
     openKey: string | null;
     onToggle: (key: string) => void;
     onVerMas: (key: string) => void;
@@ -79,9 +75,7 @@ export function CategoryAccordion({
         aparteTotal: number;
     };
 }) {
-    const rankOf = new Map(barOrder.map((s, i) => [s.key, i]));
     const categories = useCategories();
-    const v2 = useChartsV2();
     const banks = useStatementBanks();
     const rows = { categories, banks, attention, repeats };
 
@@ -102,9 +96,8 @@ export function CategoryAccordion({
             <ul className="divide-y divide-mist">
                 {slices.map((s) => {
                     const open = openKey === s.key;
-                    const rank = rankOf.get(s.key) ?? 0;
-                    // v2: the category's own taxonomy color, as in the bar.
-                    const color = v2 ? sliceColor(s, categories) : barFill(rank, s.uncategorized);
+                    // The category's own taxonomy color, as in the bar.
+                    const color = sliceColor(s, categories);
                     const Icon = s.uncategorized
                         ? CircleDashed
                         : categoryIcon(categories, s.key);

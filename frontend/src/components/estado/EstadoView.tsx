@@ -228,7 +228,7 @@ export function EstadoView({
     const completeKeys = complete.map((m) => m.key);
     const skipped = held.filter((m) => !completeKeys.includes(m.key));
     // The latest month when the record stops short of its last day: the
-    // month charts draw it apart in «Gráficas v2».
+    // month charts draw it apart, labelled «al {day}».
     const endDay = Number(coverage.end.slice(8, 10));
     const partial: PartialMonth =
         last && coverage.end.slice(0, 7) === last.key && endDay < new Date(Number(last.key.slice(0, 4)), Number(last.key.slice(5, 7)), 0).getDate()

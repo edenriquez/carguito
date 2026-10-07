@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import type { ApexOptions } from "apexcharts";
 import { ApexChart } from "@/components/charts/apex/ApexChart";
 import { colors } from "@/design/tokens";
-import { useChartsV2 } from "@/lib/chartsV2";
 import { compactMxn, monthLabel, mxn } from "@/lib/format";
 import { num, parsePeriodKey, type MetricRow } from "@/lib/metrics";
 
@@ -32,17 +31,17 @@ export function CohortChart({
     points: MonthPoint[];
     /** The scenario's monthly cost, or `null` when no scenario is set. */
     scenarioMonthly: number | null;
-    /** v2: overrides the computed headline. */
+    /** Overrides the computed headline. */
     title?: string;
 }) {
-    const v2 = useChartsV2();
     const read = useMemo(() => readPoints(points), [points]);
     const headline = title ?? cohortHeadline(points, read, scenarioMonthly);
 
-    const v2Options = useMemo<ApexOptions>(() => {
+    const options = useMemo<ApexOptions>(() => {
         const { average, partial } = read;
         return {
             chart: { stacked: false, toolbar: { show: false } },
+            // The bar is the real spend; the line is the hypothesis.
             colors: [colors.ash, colors.signal],
             stroke: { width: [0, 2], dashArray: [0, 6], curve: "straight" },
             plotOptions: { bar: { columnWidth: "52%", borderRadius: 2 } },
@@ -110,41 +109,19 @@ export function CohortChart({
         };
     }, [points, scenarioMonthly, read]);
 
-    const options = useMemo<ApexOptions>(
-        () => ({
-            chart: { stacked: false, toolbar: { show: false } },
-            // The bar is the real spend; the line is the hypothesis.
-            colors: [colors.ash, colors.signal],
-            stroke: {
-                width: [0, 2],
-                dashArray: [0, 6],
-                curve: "straight",
-            },
-            plotOptions: { bar: { columnWidth: "52%", borderRadius: 2 } },
-            xaxis: { categories: points.map((p) => p.label) },
-            yaxis: { labels: { formatter: (v: number) => compactMxn(v) } },
-            tooltip: { y: { formatter: (v: number) => mxn(v) } },
-            legend: { show: scenarioMonthly !== null },
-            markers: { size: 0 },
-        }),
-        [points, scenarioMonthly]
-    );
-
     const series = useMemo(() => {
         const actual = {
             name: "Como vas",
             type: "column",
-            data: v2
-                ? points.map((p, i) => ({
-                      x: p.label,
-                      y: p.total,
-                      // Focus without a click: the last complete month in
-                      // Ink, the rest Ash, the month still running washed back (Muted is
-                      // Ash at ~0.45 on Paper, opaque).
-                      fillColor:
-                          i === read.focus ? colors.ink : i === read.partial ? colors.muted : colors.ash,
-                  }))
-                : points.map((p) => p.total),
+            data: points.map((p, i) => ({
+                x: p.label,
+                y: p.total,
+                // Focus without a click: the last complete month in
+                // Ink, the rest Ash, the month still running washed back (Muted is
+                // Ash at ~0.45 on Paper, opaque).
+                fillColor:
+                    i === read.focus ? colors.ink : i === read.partial ? colors.muted : colors.ash,
+            })),
         };
         if (scenarioMonthly === null) return [actual];
         return [
@@ -158,18 +135,18 @@ export function CohortChart({
                 data: points.map(() => scenarioMonthly),
             },
         ];
-    }, [points, scenarioMonthly, v2, read]);
+    }, [points, scenarioMonthly, read]);
 
     return (
         // min-w-0 is not optional: a CSS grid item defaults to min-width:auto
         // and an Apex SVG inside one will not shrink below its first render
         // width, so the page overflows the moment the window narrows.
         <div className="min-w-0">
-            {v2 && headline && <p className="mb-3 text-body font-medium text-ink">{headline}</p>}
+            {headline && <p className="mb-3 text-body font-medium text-ink">{headline}</p>}
             <ApexChart
                 type="line"
                 series={series}
-                options={v2 ? v2Options : options}
+                options={options}
                 height={260}
                 ariaLabel={headline ?? undefined}
             />
