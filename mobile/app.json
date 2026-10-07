@@ -1,8 +1,8 @@
 {
     "expo": {
-        "name": "Tomin",
-        "slug": "tomin",
-        "scheme": "tomin",
+        "name": "Carguito",
+        "slug": "carguito",
+        "scheme": "carguito",
         "version": "0.2.0",
         "orientation": "portrait",
         "userInterfaceStyle": "light",
@@ -12,18 +12,18 @@
         },
         "ios": {
             "supportsTablet": true,
-            "bundleIdentifier": "mx.tomin.app"
+            "bundleIdentifier": "mx.carguito.app"
         },
         "android": {
-            "package": "mx.tomin.app"
+            "package": "mx.carguito.app"
         },
         "plugins": [
             "expo-router",
             [
                 "expo-image-picker",
                 {
-                    "photosPermission": "Tomin lee tus tickets en el teléfono; la foto no se sube a ningún servidor.",
-                    "cameraPermission": "Tomin lee el ticket aquí mismo, en tu teléfono; la foto no se sube a ningún servidor."
+                    "photosPermission": "Carguito lee tus tickets en el teléfono; la foto no se sube a ningún servidor.",
+                    "cameraPermission": "Carguito lee el ticket aquí mismo, en tu teléfono; la foto no se sube a ningún servidor."
                 }
             ]
         ],
