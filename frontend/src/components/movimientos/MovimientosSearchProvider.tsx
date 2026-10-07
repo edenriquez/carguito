@@ -12,10 +12,7 @@ import {
     type RefObject,
 } from "react";
 import { track } from "@/lib/telemetry";
-import {
-    EMPTY_QUERY,
-    type MovimientosQuery,
-} from "@/lib/movimientosQuery";
+import { EMPTY_QUERY, type MovimientosQuery } from "@/lib/movimientosQuery";
 
 /**
  * The movimientos modal's open state and the criteria it commits on close.
@@ -29,14 +26,25 @@ type Api = {
     /** `seed` is the draft the modal must open on — setQuery alone can
      *  lose the race with the open flag. `seedGen` bumps so the modal
      *  effect re-runs even when the overlay was already open. */
-    openModal: (source?: string, seed?: MovimientosQuery) => void;
+    openModal: (source?: string, seed?: MovimientosQuery, opts?: OpenOptions) => void;
     closeModal: () => void;
     query: MovimientosQuery;
     setQuery: (next: MovimientosQuery) => void;
     seedGen: number;
+    /** The modal was opened as a look at one category: its criterios stay in
+     *  the modal, and closing leaves the faces' query as it was. */
+    transient: boolean;
     /** Same-render seed for the modal draft. A ref can miss the first paint. */
     openingSeed: MovimientosQuery | null;
     searchInputRef: RefObject<HTMLInputElement>;
+};
+
+type OpenOptions = {
+    /** Filter the modal only. Picking a category on a chart is a question
+     *  about that category, not a decision to narrow every chart — so the
+     *  seed is not written to the shared query, and closing commits nothing
+     *  but explicit date edits. */
+    transient?: boolean;
 };
 
 const Ctx = createContext<Api | null>(null);
@@ -54,24 +62,33 @@ export function MovimientosSearchProvider({ children }: { children: ReactNode })
     const [query, setQuery] = useState<MovimientosQuery>(EMPTY_QUERY);
     const [seedGen, setSeedGen] = useState(0);
     const [openingSeed, setOpeningSeed] = useState<MovimientosQuery | null>(null);
+    const [transient, setTransient] = useState(false);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    const openModal = useCallback((source = "unknown", seed?: MovimientosQuery) => {
-        setOpeningSeed(seed ?? null);
-        if (seed) setQuery(seed);
-        setSeedGen((n) => n + 1);
-        setOpen((was) => {
-            if (was) {
-                searchInputRef.current?.focus();
-                return was;
-            }
-            track("movimientos.modal_open", { source });
-            return true;
-        });
-    }, []);
+    const openModal = useCallback(
+        (source = "unknown", seed?: MovimientosQuery, opts?: OpenOptions) => {
+            const isTransient = Boolean(seed && opts?.transient);
+            setOpeningSeed(seed ?? null);
+            // A bare re-open (⌘K while open) keeps whatever mode is running.
+            if (seed) setTransient(isTransient);
+            if (seed && !isTransient) setQuery(seed);
+            setSeedGen((n) => n + 1);
+            setOpen((was) => {
+                if (was) {
+                    searchInputRef.current?.focus();
+                    return was;
+                }
+                if (!seed) setTransient(false);
+                track("movimientos.modal_open", { source });
+                return true;
+            });
+        },
+        []
+    );
 
     const closeModal = useCallback(() => {
         setOpeningSeed(null);
+        setTransient(false);
         setOpen(false);
     }, []);
 
@@ -93,10 +110,11 @@ export function MovimientosSearchProvider({ children }: { children: ReactNode })
             query,
             setQuery,
             seedGen,
+            transient,
             openingSeed,
             searchInputRef,
         }),
-        [open, openModal, closeModal, query, seedGen, openingSeed]
+        [open, openModal, closeModal, query, seedGen, transient, openingSeed]
     );
 
     return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

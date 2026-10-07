@@ -157,7 +157,8 @@ export function EstadoView({
     /** Opens the modal over the whole span, so what it lists is what was read. */
     function ver(source: string, seed: typeof EMPTY_QUERY) {
         if (bounds.start && bounds.end) selectCustom(bounds.start, bounds.end, "lectura");
-        openModal(source, seed);
+        // A category seed is a look, not a filter for every chart.
+        openModal(source, seed, { transient: seed.categoryIds.length > 0 });
     }
 
     const withYear = new Set(keys.map((k) => k.slice(0, 4))).size > 1;

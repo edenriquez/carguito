@@ -60,8 +60,16 @@ export function MovimientosModal({
     dataVersion: number;
     refresh: () => void;
 }) {
-    const { open, closeModal, query, setQuery, seedGen, openingSeed, searchInputRef } =
-        useMovimientosSearch();
+    const {
+        open,
+        closeModal,
+        query,
+        setQuery,
+        seedGen,
+        transient,
+        openingSeed,
+        searchInputRef,
+    } = useMovimientosSearch();
     const {
         bounds: windowBounds,
         window: timeWindow,
@@ -193,7 +201,9 @@ export function MovimientosModal({
     }, [draft, start, end]);
 
     const commitAndClose = useCallback(() => {
-        setQuery(draft);
+        // Opened on a category from a chart: the criterios were the modal's
+        // own, and the charts go back to what they showed before.
+        if (!transient) setQuery(draft);
         if (datesDirty) {
             if (start && end) {
                 const a = start <= end ? start : end;
@@ -211,9 +221,21 @@ export function MovimientosModal({
             amount: draft.amountBucket ?? "",
             kind: draft.kind,
             date_changed: datesDirty,
+            transient,
         });
         closeModal();
-    }, [draft, datesDirty, start, end, setQuery, selectCustom, selectPreset, refresh, closeModal]);
+    }, [
+        draft,
+        transient,
+        datesDirty,
+        start,
+        end,
+        setQuery,
+        selectCustom,
+        selectPreset,
+        refresh,
+        closeModal,
+    ]);
 
     /**
      * «Quitar criterios» quits *every* criterio, the date included. The date

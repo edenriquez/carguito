@@ -11,9 +11,15 @@ from ...domain.services.aliases import AliasService
 from ...domain.services.credit_summary import read_credit_summary
 from ...domain.services.categorization import CategorizationService
 from ...domain.services.flags import detect_flags
+from ...domain.services.statement_overlap import split_new
 from ...domain.services.transfers import TransferPartyService, pair_transfers
-from ...domain.value_objects.enums import StatementSource, StatementStatus
-from ..dtos.extraction import ExtractedDocument
+from ...domain.value_objects.enums import (
+    AccountKind,
+    SourceType,
+    StatementSource,
+    StatementStatus,
+)
+from ..dtos.extraction import ExtractedDocument, ParsedStatement, ParsedTransaction
 from ..ports.outbound import (
     CategoryRepository,
     CubeWriter,
@@ -45,6 +51,10 @@ class ProcessFileResult:
     statement_id: UUID
     template: str
     transactions_created: int
+    #: Movements the file held that the ledger already had, from an earlier
+    #: upload of the same account and period (a partial month re-uploaded
+    #: once it closed). Not stored again; see statement_overlap.py.
+    transactions_skipped: int = 0
 
 
 class _StatementIngestion:
@@ -110,6 +120,8 @@ class _StatementIngestion:
         # Bank-agnostic and independent of the movement parse: the card
         # figures live in the statement's summary, which no parser reads.
         card = read_credit_summary(doc.text or "")
+        bank = parsed.bank or self._classifier.detect_bank(doc)
+        incoming, skipped, inherited_kind = self._complement(user_id, parsed, bank)
 
         statement = Statement(
             user_id=user_id,
@@ -117,10 +129,11 @@ class _StatementIngestion:
             # The parser knows its own bank only when a dedicated template
             # matched; for generic parses the classifier's scored
             # detection still names the issuer.
-            bank=parsed.bank or self._classifier.detect_bank(doc),
+            bank=bank,
             period_start=parsed.period_start,
             period_end=parsed.period_end,
             status=StatementStatus.PROCESSING,
+            account_kind=inherited_kind,
             credit_no_interest_payment=card.no_interest_payment if card else None,
             credit_minimum_payment=card.minimum_payment if card else None,
             credit_due_date=card.due_date if card else None,
@@ -144,7 +157,7 @@ class _StatementIngestion:
         # name is me") flags matching movements the wording rules cannot.
         parties = TransferPartyService(self._transfer_parties.list_for_user(user_id))
         domain_txs: list[Transaction] = []
-        for p in parsed.transactions:
+        for p in incoming:
             cls = categorizer.classify(p.raw_description)
             # Derived once, at ingest, so every later read agrees. A
             # transfer is not spend and a withdrawal is not a category.
@@ -181,7 +194,56 @@ class _StatementIngestion:
             statement_id=statement.id,
             template=template,
             transactions_created=len(domain_txs),
+            transactions_skipped=skipped,
         )
+
+    def _complement(
+        self, user_id: UUID, parsed: ParsedStatement, bank: str | None
+    ) -> tuple[list[ParsedTransaction], int, AccountKind | None]:
+        """Drop the movements an earlier upload of this account already stored.
+
+        Only bank statements: a CFDI is one invoice, and two identical
+        invoices are two invoices. The ledger side is narrowed to earlier
+        statements of the same bank and document kind, over the new file's
+        own date span — a same-day, same-amount, same-text movement on an
+        unrelated account is unlikely, but there is no reason to risk it.
+
+        Also returns the account kind those earlier statements agree on, so
+        the complement does not land unlabelled when its first half was
+        already labelled by the user.
+        """
+        txs = parsed.transactions
+        if parsed.source_type is not SourceType.BANK_PDF or not txs:
+            return txs, 0, None
+        wanted = (bank or "").strip().casefold()
+        same_account = [
+            st
+            for st in self._statements.list_for_user(user_id)
+            if st.source_type is SourceType.BANK_PDF
+            and (st.bank or "").strip().casefold() == wanted
+        ]
+        if not same_account:
+            return txs, 0, None
+        existing = self._transactions.list_for_user(
+            user_id,
+            start=min(t.tx_date for t in txs),
+            end=max(t.tx_date for t in txs),
+            statement_ids=[st.id for st in same_account],
+            # A whole span, not a page: a truncated ledger would let
+            # already-stored movements through as "new".
+            limit=1_000_000,
+        )
+        if not existing:
+            return txs, 0, None
+        fresh, skipped = split_new(txs, existing)
+        overlapping = {t.statement_id for t in existing}
+        kinds = {st.account_kind for st in same_account if st.id in overlapping}
+        kind = kinds.pop() if len(kinds) == 1 else None
+        if skipped:
+            logger.info(
+                "ingest: %d movement(s) already stored, %d new", skipped, len(fresh)
+            )
+        return fresh, skipped, kind
 
     def _pair_mirrors(self, user_id: UUID) -> None:
         """Flag mirrored self-transfer legs the new statement just completed.

@@ -99,7 +99,7 @@ export function PorMesView({
     function verCategoria(monthKey: string, categoryKey: string) {
         const range = monthBounds(monthKey);
         selectCustom(range.start, range.end, "por-mes");
-        openModal("por-mes", { ...query, categoryIds: [categoryKey] });
+        openModal("por-mes", { ...query, categoryIds: [categoryKey] }, { transient: true });
     }
 
     if (error) {
