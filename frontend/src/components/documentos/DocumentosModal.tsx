@@ -116,7 +116,7 @@ export function DocumentosModal({
                     <div className="min-w-0">
                         <h2 className="text-title-sm font-normal text-ink">Documentos</h2>
                         <p className="mt-0.5 text-body-sm text-graphite">
-                            Cada PDF y XML que Tomin leyó. Aquí dices de qué cuenta viene
+                            Cada PDF y XML que Carguito leyó. Aquí dices de qué cuenta viene
                             cada uno; si eliminas un documento, sus movimientos se van con
                             él.
                         </p>

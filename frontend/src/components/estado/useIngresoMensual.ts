@@ -6,7 +6,7 @@ import { clusterIncome } from "@/lib/ingresos";
 import { monthKeyOf, type MonthKey } from "@/lib/porMes";
 import { useIngresos } from "@/components/pronostico/useIngresos";
 
-const DECLARED_KEY = "tomin.lectura.ingreso";
+const DECLARED_KEY = "carguito.lectura.ingreso";
 
 export type IngresoSource = "declarado" | "etiquetado" | null;
 

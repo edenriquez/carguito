@@ -406,7 +406,7 @@ export function StatementDropzone({
             </p>
             <p className="mx-auto mt-1.5 max-w-sm text-body-sm text-graphite">
                 {uploading
-                    ? "Tomin está sacando los movimientos, uno por uno."
+                    ? "Carguito está sacando los movimientos, uno por uno."
                     : "PDF de tu banco o XML del SAT. Puedes soltar varios a la vez."}
             </p>
 

@@ -90,7 +90,7 @@ export function ReviewStatement({
                 </div>
                 <div>
                     <p className="eyebrow">
-                        {empty ? "Tomin leyó el archivo" : "Tomin leyó"}
+                        {empty ? "Carguito leyó el archivo" : "Carguito leyó"}
                     </p>
                     <h2 className="text-title-sm font-normal text-ink">
                         {empty
@@ -104,7 +104,7 @@ export function ReviewStatement({
 
             {empty && (
                 <p className="mt-4 text-body-sm text-graphite">
-                    El documento se guardó, pero Tomin no encontró movimientos en él. Suele
+                    El documento se guardó, pero Carguito no encontró movimientos en él. Suele
                     pasar con un PDF escaneado como imagen o con un resumen sin tabla de
                     cargos. Prueba con el estado de cuenta completo de tu banco.
                 </p>

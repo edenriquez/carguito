@@ -203,7 +203,7 @@ export function RecurrentesView({
                 <>
                     <EmptyState
                         icon={Repeat}
-                        title="Tomin aún no ve cobros que se repitan"
+                        title="Carguito aún no ve cobros que se repitan"
                         action={
                             <Button
                                 variant="ghost"
@@ -471,7 +471,7 @@ function FijoRow({
                     <RowAction
                         icon={<Trash2 size={14} aria-hidden />}
                         label={`Eliminar ${item.label}`}
-                        title="Eliminar de Tomin"
+                        title="Eliminar de Carguito"
                         danger
                         onClick={onRemove}
                     />

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Flame, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { BankMark } from "@/components/ui";
 import { useBankScope } from "@/lib/banks";
 import { BankFilter } from "@/components/BankFilter";
 import { PagosBell } from "@/components/pagos/PagosBell";
@@ -48,11 +49,11 @@ export function AppShell({
             <header className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 py-6 sm:grid-cols-[1fr_auto_1fr] sm:py-8">
                 <Link
                     href="/"
-                    aria-label="Tomin, inicio"
+                    aria-label="Carguito, inicio"
                     className="flex items-center gap-2 justify-self-start text-ink"
                 >
-                    <Flame size={16} className="text-signal" aria-hidden />
-                    <span className="text-body font-medium">Tomin</span>
+                    <BankMark size={20} />
+                    <span className="text-body font-medium">Carguito</span>
                 </Link>
 
                 {instrument && (

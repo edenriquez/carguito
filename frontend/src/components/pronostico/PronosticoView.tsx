@@ -398,7 +398,7 @@ function Headline({
                         <Skeleton className="mt-1 h-9 w-48" />
                     ) : unknown ? (
                         <p className="mt-0.5 font-display text-title-md font-normal text-ink">
-                            Tomin no adivina
+                            Carguito no adivina
                         </p>
                     ) : (
                         <p className="tabular mt-0.5 text-metric font-normal text-ink">

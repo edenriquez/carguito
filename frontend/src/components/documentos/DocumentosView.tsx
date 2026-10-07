@@ -271,7 +271,7 @@ export function DocumentosView({
                             Documentos
                         </h1>
                         <p className="mt-1.5 text-body text-graphite">
-                            Cada PDF y XML que Tomin leyó y desechó. Aquí dices de qué cuenta
+                            Cada PDF y XML que Carguito leyó y desechó. Aquí dices de qué cuenta
                             viene cada uno; si eliminas un documento, sus movimientos se van con él.
                         </p>
                     </div>
@@ -361,7 +361,7 @@ export function DocumentosView({
                     <div className="px-5 py-4 sm:px-6">
                         <EmptyState
                             icon={FileText}
-                            title="Tomin no ha leído nada todavía"
+                            title="Carguito no ha leído nada todavía"
                             action={
                                 <Button
                                     className="text-ink"
@@ -376,7 +376,7 @@ export function DocumentosView({
                                 </Button>
                             }
                         >
-                            Sube un estado de cuenta en PDF o una factura del SAT y Tomin
+                            Sube un estado de cuenta en PDF o una factura del SAT y Carguito
                             extrae los movimientos.
                         </EmptyState>
                     </div>
@@ -440,7 +440,7 @@ function TransfersNote({ banks }: { banks: number }) {
             <span>
                 Tienes {banks} bancos.{" "}
                 {total === 0
-                    ? "Tomin no ha reconocido todavía pagos entre tus cuentas."
+                    ? "Carguito no ha reconocido todavía pagos entre tus cuentas."
                     : `${total} movimiento${total === 1 ? "" : "s"} ya cuenta${total === 1 ? "" : "n"} como pago entre tus cuentas y no se duplica${total === 1 ? "" : "n"}${counts.user > 0 ? ` (${counts.user} los marcaste tú)` : ""}.`}{" "}
                 Si falta uno, ábrelo en Movimientos y marca «Es entre mis cuentas».
             </span>
@@ -456,7 +456,7 @@ function TransfersNote({ banks }: { banks: number }) {
 }
 
 /**
- * Where tickets come from, said in the one place that lists what Tomin has
+ * Where tickets come from, said in the one place that lists what Carguito has
  * read: the Precios face, from a photo the phone reads itself or one the
  * browser uploads for the backend to read. Either way only text is stored.
  */

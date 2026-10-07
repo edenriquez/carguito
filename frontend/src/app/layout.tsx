@@ -22,9 +22,9 @@ const instrumentSerif = Instrument_Serif({
 /** Mirrors `landing/src/lib/site.ts` (`SITE.title`, `SITE.description`)
  *  verbatim. The two apps make one promise; edit there first, then here. */
 export const metadata: Metadata = {
-    title: "Tu estado de cuenta no lo lee nadie. Tomin sí.",
+    title: "Tu estado de cuenta no lo lee nadie. Carguito sí.",
     description:
-        "Sube el PDF de tu banco. Tomin saca cada movimiento, señala los cobros que se repiten y los que no cuadran, y desecha el archivo. Sin conectar cuentas, sin tu contraseña, sin capturar a mano.",
+        "Sube el PDF de tu banco. Carguito saca cada movimiento, señala los cobros que se repiten y los que no cuadran, y desecha el archivo. Sin conectar cuentas, sin tu contraseña, sin capturar a mano.",
 };
 
 export const viewport: Viewport = {
