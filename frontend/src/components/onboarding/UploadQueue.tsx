@@ -155,6 +155,19 @@ function Status({ item }: { item: UploadItem }) {
         return <span className="shrink-0 text-label text-negative">No se pudo</span>;
     }
     const n = item.result?.transactions_created ?? 0;
+    const skipped = item.result?.transactions_skipped ?? 0;
+    // A re-upload of a period already in the ledger: say how much was new,
+    // or "0 movimientos" reads as a failed parse.
+    if (skipped > 0) {
+        return (
+            <span className="tabular shrink-0 text-label text-positive">
+                {n.toLocaleString("es-MX")} nuevo{n === 1 ? "" : "s"}
+                <span className="text-graphite">
+                    {" "}· {skipped.toLocaleString("es-MX")} ya estaba{skipped === 1 ? "" : "n"}
+                </span>
+            </span>
+        );
+    }
     return (
         <span className="tabular shrink-0 text-label text-positive">
             {n.toLocaleString("es-MX")} movimiento{n === 1 ? "" : "s"}

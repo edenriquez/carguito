@@ -85,7 +85,7 @@ export function PorCategoriaView({
             // option and the same as what applyQuery matches on.
             categoryIds: [key],
         };
-        openModal("revisar", next);
+        openModal("revisar", next, { transient: true });
     }
 
     if (error) {

@@ -112,6 +112,7 @@ def ingest_extracted():
             statement_id=str(result.statement_id),
             template=result.template,
             transactions_created=result.transactions_created,
+            transactions_skipped=result.transactions_skipped,
             statement=statement_json(statement),
             # The handoff: the phone shows a button, the browser shows the
             # graphs. The backend is the only party that knows where the web

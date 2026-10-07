@@ -238,3 +238,54 @@ def test_the_two_paths_dedup_against_each_other(client):
         "extractor": "expo-file-system",
     }
     assert _post(client, _seal(payload, key)).status_code == 409
+
+
+def test_reuploading_a_longer_period_only_adds_what_was_missing(client):
+    """A partial month uploaded early, then the closed month: complement it.
+
+    Different files (different hashes), same account: the overlap must not
+    land twice, and a movement repeated on the same day must still count.
+    """
+    key = _server_key(client)
+    partial = _text_payload(
+        ["05/01/2024 OXXO SAN RAFAEL 45.50"], original=b"enero hasta el 10"
+    )
+    first = _post(client, _seal(partial, key)).get_json()
+    assert first["transactions_created"] == 1
+    assert first["transactions_skipped"] == 0
+
+    full = _text_payload(
+        [
+            "05/01/2024 OXXO  SAN RAFAEL 45.50",  # same line, rewrapped
+            "05/01/2024 OXXO SAN RAFAEL 45.50",  # a second, real coffee
+            "12/01/2024 SUPER KOMPRAS CENTRO 320.00",
+        ],
+        original=b"enero completo",
+    )
+    resp = _post(client, _seal(full, key))
+    assert resp.status_code == 201, resp.get_data(as_text=True)
+    second = resp.get_json()
+    assert second["transactions_created"] == 2
+    assert second["transactions_skipped"] == 1
+
+    items = client.get("/api/transactions").get_json()["items"]
+    assert sorted(t["raw_description"] for t in items) == [
+        "OXXO SAN RAFAEL",
+        "OXXO SAN RAFAEL",
+        "SUPER KOMPRAS CENTRO",
+    ]
+    assert client.get("/api/analytics/summary").get_json()["total_expense"] == 411.0
+
+
+def test_complement_inherits_the_account_kind_already_declared(client):
+    key = _server_key(client)
+    first = _post(
+        client, _seal(_text_payload(_LINES[:1], original=b"parcial"), key)
+    ).get_json()
+    client.patch(f"/api/statements/{first['statement_id']}", json={"account_kind": "debit"})
+
+    second = _post(
+        client, _seal(_text_payload(_LINES, original=b"completo"), key)
+    ).get_json()
+    assert second["transactions_skipped"] == 1
+    assert second["statement"]["account_kind"] == "debit"

@@ -132,6 +132,10 @@ export type UploadResult = {
     statement_id: string;
     template: string;
     transactions_created: number;
+    /** Movements the file held that an earlier upload of the same account
+     *  already stored (a partial month re-uploaded once closed). Not stored
+     *  twice; only `transactions_created` landed. */
+    transactions_skipped: number;
     statement: Statement;
 };
 

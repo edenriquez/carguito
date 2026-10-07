@@ -69,7 +69,10 @@ export function ReviewStatement({
     // A parse that found nothing is the one outcome this screen must not
     // dress up as success: "0 movimientos" with a Confirmar button reads as
     // done. Say what happened and what to do.
-    const empty = result.transactions_created === 0;
+    const skipped = result.transactions_skipped ?? 0;
+    // Nothing new because everything was already there is a success, not an
+    // empty parse: the same period was uploaded before.
+    const empty = result.transactions_created === 0 && skipped === 0;
     // Banks without a dedicated parser (everything but Banamex and Banco
     // Azteca today) are read by the generic template, which takes the first
     // amount on each dated line. It works; it is also the one path where a
@@ -92,7 +95,9 @@ export function ReviewStatement({
                     <h2 className="text-title-sm font-normal text-ink">
                         {empty
                             ? "Sin movimientos legibles"
-                            : `${result.transactions_created} movimientos`}
+                            : skipped > 0
+                              ? `${result.transactions_created} movimientos nuevos`
+                              : `${result.transactions_created} movimientos`}
                     </h2>
                 </div>
             </div>
@@ -102,6 +107,15 @@ export function ReviewStatement({
                     El documento se guardó, pero Tomin no encontró movimientos en él. Suele
                     pasar con un PDF escaneado como imagen o con un resumen sin tabla de
                     cargos. Prueba con el estado de cuenta completo de tu banco.
+                </p>
+            )}
+
+            {skipped > 0 && (
+                <p className="mt-4 text-body-sm text-graphite">
+                    {skipped.toLocaleString("es-MX")}{" "}
+                    {skipped === 1 ? "movimiento ya estaba" : "movimientos ya estaban"} de una
+                    subida anterior de esta cuenta y no se duplicaron; sólo se agregó lo que
+                    faltaba.
                 </p>
             )}
 

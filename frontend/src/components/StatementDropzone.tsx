@@ -238,10 +238,14 @@ export function useStatementUpload(
         if (settledAt.current === done.length) return;
         settledAt.current = done.length;
         const movements = done.reduce((n, it) => n + (it.result?.transactions_created ?? 0), 0);
+        const skipped = done.reduce((n, it) => n + (it.result?.transactions_skipped ?? 0), 0);
+        const already = skipped > 0 ? ` · ${skipped.toLocaleString("es-MX")} ya estaban` : "";
         toast(
-            done.length === 1
-                ? `Listo: ${movements.toLocaleString("es-MX")} movimiento${movements === 1 ? "" : "s"} leídos`
-                : `Listo: ${done.length} documentos · ${movements.toLocaleString("es-MX")} movimientos`,
+            skipped > 0
+                ? `Listo: ${movements.toLocaleString("es-MX")} movimiento${movements === 1 ? "" : "s"} nuevo${movements === 1 ? "" : "s"}${already}`
+                : done.length === 1
+                  ? `Listo: ${movements.toLocaleString("es-MX")} movimiento${movements === 1 ? "" : "s"} leídos`
+                  : `Listo: ${done.length} documentos · ${movements.toLocaleString("es-MX")} movimientos`,
             "positive"
         );
     }, [queue, toast]);

@@ -57,6 +57,7 @@ def upload_statement():
             statement_id=str(result.statement_id),
             template=result.template,
             transactions_created=result.transactions_created,
+            transactions_skipped=result.transactions_skipped,
             statement=statement_json(statement),
         ),
         201,
