@@ -12,8 +12,9 @@ import { useSyncExternalStore } from "react";
  * can be compared by flipping the switch. Once one wins, the flag and the
  * losing branch are deleted.
  *
- * Persisted in localStorage; `?graficas=v2` / `?graficas=v1` sets it from a
- * link. Off by default.
+ * On by default since 6-oct-2026 (v2 won). `?graficas=v1` turns it off and
+ * `?graficas=v2` back on, persisted in localStorage, until the v1 branches
+ * are deleted.
  */
 
 const KEY = "tomin.charts.v2";
@@ -21,16 +22,16 @@ const listeners = new Set<() => void>();
 
 function read(): boolean {
     try {
-        return localStorage.getItem(KEY) === "1";
+        return localStorage.getItem(KEY) !== "0";
     } catch {
-        return false;
+        return true;
     }
 }
 
 export function setChartsV2(on: boolean): void {
     try {
-        if (on) localStorage.setItem(KEY, "1");
-        else localStorage.removeItem(KEY);
+        if (on) localStorage.removeItem(KEY);
+        else localStorage.setItem(KEY, "0");
     } catch {
         // Storage blocked: the switch still flips for this page.
     }
@@ -51,7 +52,7 @@ function getSnapshot(): boolean {
         if (param === "v2" || param === "v1") setChartsV2(param === "v2");
         else snapshot = read();
     }
-    return snapshot ?? false;
+    return snapshot ?? true;
 }
 
 export function useChartsV2(): boolean {
