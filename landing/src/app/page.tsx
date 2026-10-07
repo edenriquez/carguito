@@ -5,6 +5,7 @@ import { CtaBand } from "@/components/shared/CtaBand";
 import { Footer } from "@/components/shared/Footer";
 import { HeroB } from "@/components/landing/HeroB";
 import { StepsB } from "@/components/landing/StepsB";
+import { LecturaB } from "@/components/landing/LecturaB";
 import { BentoB } from "@/components/landing/BentoB";
 import { CustodyB } from "@/components/landing/CustodyB";
 import { BanksB } from "@/components/landing/BanksB";
@@ -16,11 +17,12 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, them
 /**
  * The landing — "Señal oscura". One dark root via data-theme (see
  * globals.css): Night ground, a drifting cyan mesh in the hero, the product
- * as six drawn readings in a bento grid.
+ * drawn as the dashboard draws it: the Lectura, then the other faces.
  *
  * The order is the argument: the opinion and its answer (hero) → how it
- * works (three steps, `#como-funciona`) → proof (the six readings, the
- * merchants it names) → the second opinion (custody) → honesty as proof
+ * works (three steps, `#como-funciona`) → proof (the Lectura against the
+ * country, `#lecturas`; Movimientos, Plan and Pagos, `#caras`; the merchants
+ * it names) → the second opinion (custody) → honesty as proof
  * (which banks, how well) → objections (FAQ) → the close as an echo.
  * Voice and glossary: docs/voice-and-type.md.
  */
@@ -30,6 +32,7 @@ export default function Landing() {
             <Nav tone="dark" />
             <HeroB />
             <StepsB />
+            <LecturaB />
             <BentoB />
             <LogoMarquee
                 tone="dark"

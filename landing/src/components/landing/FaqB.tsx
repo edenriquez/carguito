@@ -1,7 +1,7 @@
 import { appUrl } from "@/lib/site";
 
 /**
- * The five objections a first visitor actually has, answered in the order
+ * The six objections a first visitor actually has, answered in the order
  * they come up. Native <details>: no JS, keyboard-accessible, indexable. The
  * answers only say what the code does today — see docs/custody-plan.md and
  * the backend's statements blueprint before changing one.
@@ -13,7 +13,7 @@ const FAQ: ReadonlyArray<{ q: string; a: string; href?: { label: string; to: str
     },
     {
         q: "¿Qué pasa con mi PDF y con mis datos?",
-        a: "En la web, el PDF viaja, se lee en memoria y se desecha; no se guarda. Desde el celular, aún en pruebas, el archivo no sale del aparato: viaja solo el texto, cifrado. Lo que Carguito sí guarda son los movimientos que sacó (fecha, monto, descripción, categoría) para dibujar tus gráficas. Eso significa que el servidor puede ver tus movimientos: no es cifrado de extremo a extremo, y no lo vamos a llamar así.",
+        a: "En la web, el PDF viaja, se lee en memoria y se desecha; no se guarda. Desde el celular, aún en pruebas, el archivo no sale del aparato: viaja solo el texto, cifrado. La foto de un ticket subida en la web se lee en el servidor y solo se guarda su texto. Lo que Carguito sí guarda son los movimientos que sacó (fecha, monto, descripción, categoría) para dibujar tus gráficas; tu ingreso y tus fijos se guardan en tu navegador. Eso significa que el servidor puede ver tus movimientos: no es cifrado de extremo a extremo, y no lo vamos a llamar así.",
         href: { label: "Leer la política de privacidad", to: "/privacidad" },
     },
     {
@@ -23,7 +23,11 @@ const FAQ: ReadonlyArray<{ q: string; a: string; href?: { label: string; to: str
     },
     {
         q: "¿Necesito instalar una app?",
-        a: "No. Todo funciona desde el navegador: subes el PDF y ves tu dinero ahí mismo.",
+        a: "No. Todo funciona desde el navegador: subes el PDF, o la foto del ticket del súper, y ves tu dinero ahí mismo. La app del celular existe, pero hoy está en pruebas.",
+    },
+    {
+        q: "¿De dónde salen las comparaciones con el país?",
+        a: "De tablas públicas del INEGI: la ENIGH 2024 (gasto e ingreso por decil y por rubro), las líneas de pobreza por ingresos (la canasta alimentaria) y el INPC. Son cifras por hogar, no por persona, así que la comparación es aproximada, y cada lectura dice de qué tabla sale. Carguito no estima el lado del país: pone tus cargos junto a lo publicado.",
     },
     {
         q: "¿Y si mi PDF tiene contraseña?",

@@ -14,7 +14,7 @@ const CELLS = [
     {
         icon: Timer,
         title: "Un archivo basta",
-        body: "El primer estado de cuenta ya dibuja tus gráficas; cada uno que sumes afina la historia. Abajo dice qué bancos lee Carguito y qué tan bien.",
+        body: "El primer estado de cuenta ya trae su lectura; las que comparan meses aparecen desde el segundo mes completo, y cada documento que sumes afina la historia. Abajo dice qué bancos lee Carguito y qué tan bien.",
     },
 ];
 

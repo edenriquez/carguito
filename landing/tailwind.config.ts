@@ -21,7 +21,12 @@ const config: Config = {
     theme: {
         extend: {
             colors: { ...colors, ...dark.colors },
-            fontFamily: { ...fontFamily },
+            /* The landing's display is a grotesque, not the dashboard's serif:
+               same variable, a sans fallback chain (docs/voice-and-type.md §4). */
+            fontFamily: {
+                ...fontFamily,
+                display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
+            },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             fontSize: fontSize as any,
             borderRadius: { ...borderRadius },
