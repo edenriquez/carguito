@@ -16,10 +16,10 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from tomin.adapters.outbound.extraction.classifier import KeywordTemplateClassifier, TEMPLATE_BANAMEX
-from tomin.adapters.outbound.parsing import BanamexParser
-from tomin.application.dtos.extraction import ExtractedDocument
-from tomin.domain.value_objects.enums import TxType
+from carguito.adapters.outbound.extraction.classifier import KeywordTemplateClassifier, TEMPLATE_BANAMEX
+from carguito.adapters.outbound.parsing import BanamexParser
+from carguito.application.dtos.extraction import ExtractedDocument
+from carguito.domain.value_objects.enums import TxType
 
 PAGE_1 = """\
 ESTADO DE CUENTA AL 05 DE ENERO DE 2026
@@ -188,7 +188,7 @@ def test_the_disclaimer_is_not_part_of_the_movement():
 
 
 def test_a_payment_to_a_banamex_card_is_a_self_transfer():
-    from tomin.domain.services.flags import is_transfer
+    from carguito.domain.services.flags import is_transfer
 
     assert is_transfer("PAGO DE SERVICIO 161770 A TB")
     # ...and an ordinary service payment is not.

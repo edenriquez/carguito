@@ -13,8 +13,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from tomin.domain.entities import Category, Transaction
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Category, Transaction
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 

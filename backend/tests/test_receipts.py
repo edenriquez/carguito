@@ -27,9 +27,9 @@ import pytest
 from nacl.public import Box, PrivateKey, PublicKey
 from nacl.utils import random as random_bytes
 
-from tomin.domain.entities import Transaction
-from tomin.domain.services.receipt_reading import read_receipt
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction
+from carguito.domain.services.receipt_reading import read_receipt
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -273,8 +273,8 @@ def test_a_movement_reports_its_ticket_and_its_absence(client, container):
 
 def test_deleting_a_statement_keeps_the_ticket_and_drops_the_link(client, container):
     """The ticket is the user's document; the statement explained a charge."""
-    from tomin.domain.entities import Statement
-    from tomin.domain.value_objects.enums import SourceType, StatementStatus
+    from carguito.domain.entities import Statement
+    from carguito.domain.value_objects.enums import SourceType, StatementStatus
 
     statement = Statement(
         user_id=DEV_USER,
@@ -330,7 +330,7 @@ def _upload(client, photo: bytes = b"a jpeg of the soriana ticket", **fields):
 
 
 def _with_ocr(container, ocr):
-    from tomin.application.use_cases import IngestReceiptImageUseCase
+    from carguito.application.use_cases import IngestReceiptImageUseCase
 
     container.__dict__["ingest_receipt_image"] = IngestReceiptImageUseCase(
         ocr=ocr, ingest=container.ingest_receipt
@@ -374,7 +374,7 @@ def test_without_an_ocr_engine_the_upload_says_what_to_install(client, container
 
 
 def test_rows_are_rejoined_across_the_two_columns():
-    from tomin.adapters.outbound.receipts.ocr import _Box, group_rows
+    from carguito.adapters.outbound.receipts.ocr import _Box, group_rows
 
     rows = group_rows(
         [
@@ -402,7 +402,7 @@ class ScriptedChat:
 
 
 def _llm(answer: str):
-    from tomin.adapters.outbound.receipts import LlmReceiptReader
+    from carguito.adapters.outbound.receipts import LlmReceiptReader
 
     return LlmReceiptReader(ScriptedChat(answer))
 
@@ -529,7 +529,7 @@ def test_a_discount_under_an_item_is_the_price_it_cost():
 
 def test_a_price_whose_name_the_camera_lost_still_counts():
     """A crease took the names; the prices are real and the basket adds up."""
-    from tomin.domain.services.products import UNREADABLE_LINE, product_key
+    from carguito.domain.services.products import UNREADABLE_LINE, product_key
 
     parsed = read_receipt(
         [
@@ -558,7 +558,7 @@ def test_a_dotted_thousands_total_reads_whole():
 
 
 def test_ocr_zeros_do_not_split_one_product_into_two():
-    from tomin.domain.services.products import product_key
+    from carguito.domain.services.products import product_key
 
     assert product_key("C0ST FRIJ0") == product_key("COST FRIJO")
     assert product_key("D0L0RES AC") == product_key("DOLORES AC")
@@ -570,7 +570,7 @@ def test_department_headers_and_bare_arithmetic_are_not_products():
     """A header glued to a price is a product whose name the camera lost;
     a header joined onto a product row is words to take off it; arithmetic
     and a label-less subtotal are neither."""
-    from tomin.domain.services.products import UNREADABLE_LINE
+    from carguito.domain.services.products import UNREADABLE_LINE
 
     parsed = read_receipt(
         [
@@ -702,7 +702,7 @@ def test_the_model_is_asked_with_numbered_lines():
         yield "{}"
 
     chat.stream = stream
-    from tomin.adapters.outbound.receipts import LlmReceiptReader
+    from carguito.adapters.outbound.receipts import LlmReceiptReader
 
     LlmReceiptReader(chat).read(SORIANA)
     assert "4: 7501020510010 LECHE LALA ENT 1L 28.50 T" in sent[0].content

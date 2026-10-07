@@ -2,9 +2,9 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
-from tomin.domain.entities import Transaction
-from tomin.domain.services.recurrence import RecurrenceService, known_utility_key, series_key
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction
+from carguito.domain.services.recurrence import RecurrenceService, known_utility_key, series_key
+from carguito.domain.value_objects.enums import TxType
 
 
 def _tx(day: date, desc: str, amount: str, tx_type: TxType = TxType.EXPENSE):

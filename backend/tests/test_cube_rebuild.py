@@ -6,10 +6,10 @@ from uuid import uuid4
 
 import pytest
 
-from tomin.adapters.outbound.cube import DuckDbCube
-from tomin.application.use_cases import RebuildCubeUseCase
-from tomin.domain.entities import Transaction
-from tomin.domain.value_objects.enums import TxType
+from carguito.adapters.outbound.cube import DuckDbCube
+from carguito.application.use_cases import RebuildCubeUseCase
+from carguito.domain.entities import Transaction
+from carguito.domain.value_objects.enums import TxType
 
 
 def _tx(user, day, amount, tx_type=TxType.EXPENSE):
@@ -48,7 +48,7 @@ def test_rollup_tables_are_not_created():
 
 
 def test_cube_writer_port_has_no_refresh_rollups():
-    from tomin.application.ports.outbound import CubeWriter
+    from carguito.application.ports.outbound import CubeWriter
 
     assert not hasattr(CubeWriter, "refresh_rollups")
     assert hasattr(CubeWriter, "rebuild_for_user")

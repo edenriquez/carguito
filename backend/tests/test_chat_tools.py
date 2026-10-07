@@ -15,15 +15,15 @@ import urllib.request
 
 import pytest
 
-from tomin.adapters.outbound.chat import OpenAiCompatibleChat
-from tomin.adapters.outbound.references.web_listings import parse_listings
-from tomin.application.ports.outbound.chat import (
+from carguito.adapters.outbound.chat import OpenAiCompatibleChat
+from carguito.adapters.outbound.references.web_listings import parse_listings
+from carguito.application.ports.outbound.chat import (
     ChatMessage,
     ChatOptions,
     ChatTool,
     json_schema_format,
 )
-from tomin.application.use_cases.workstation_tools import LensTools
+from carguito.application.use_cases.workstation_tools import LensTools
 
 
 # --- a fake wire -------------------------------------------------------------

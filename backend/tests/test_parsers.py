@@ -1,20 +1,20 @@
 from datetime import date
 from decimal import Decimal
 
-from tomin.adapters.outbound.extraction.classifier import (
+from carguito.adapters.outbound.extraction.classifier import (
     KeywordTemplateClassifier,
     TEMPLATE_BANAMEX,
     TEMPLATE_BANCO_AZTECA,
     TEMPLATE_SAT_CFDI,
 )
-from tomin.adapters.outbound.parsing import (
+from carguito.adapters.outbound.parsing import (
     BanamexParser,
     GenericBankParser,
     SatCfdiParser,
 )
-from tomin.adapters.outbound.parsing.banco_azteca import BancoAztecaParser
-from tomin.application.dtos.extraction import ExtractedDocument
-from tomin.domain.value_objects.enums import SourceType, TxType
+from carguito.adapters.outbound.parsing.banco_azteca import BancoAztecaParser
+from carguito.application.dtos.extraction import ExtractedDocument
+from carguito.domain.value_objects.enums import SourceType, TxType
 
 
 def _text_doc(lines: list[str]) -> ExtractedDocument:

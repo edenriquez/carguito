@@ -2,8 +2,8 @@ import io
 
 import pytest
 
-from tomin.config.settings import Settings
-from tomin.main import create_app
+from carguito.config.settings import Settings
+from carguito.main import create_app
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def client(app):
 
 
 #: Password of the encrypted-PDF fixture below.
-PDF_PASSWORD = "tomin123"
+PDF_PASSWORD = "carguito123"
 
 
 def _build_text_pdf(lines: list[str]) -> bytes:

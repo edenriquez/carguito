@@ -1831,7 +1831,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tomin-backend"
+name = "carguito-backend"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [

@@ -12,7 +12,7 @@ from decimal import Decimal
 
 import pytest
 
-from tomin.domain.services.cohort import (
+from carguito.domain.services.cohort import (
     MIN_MONTHS,
     MIN_MOVEMENTS,
     ActiveDay,

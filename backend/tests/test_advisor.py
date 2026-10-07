@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from tomin.domain.services.advisor import (
+from carguito.domain.services.advisor import (
     P1_MECHANISM,
     P1_PHRASE,
     MonthlyFlow,

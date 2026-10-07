@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from sqlalchemy import inspect
 
-from tomin.adapters.outbound.persistence.db import Database
-from tomin.adapters.outbound.persistence.migrator import stamp_head, upgrade_to_head
-from tomin.adapters.outbound.persistence.models import Base
+from carguito.adapters.outbound.persistence.db import Database
+from carguito.adapters.outbound.persistence.migrator import stamp_head, upgrade_to_head
+from carguito.adapters.outbound.persistence.models import Base
 
 
 def _tables_and_columns(engine) -> dict[str, set[str]]:

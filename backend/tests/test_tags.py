@@ -15,9 +15,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from tomin.domain.entities import Category, Transaction
-from tomin.domain.entities.tag import slugify
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Category, Transaction
+from carguito.domain.entities.tag import slugify
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -103,7 +103,7 @@ def test_slug_uniqueness_is_per_user_not_global(app, client):
     """Two people may both have a "viaje"; one person may not have two."""
     _tag(client, "Viaje")
     container = app.extensions["container"]
-    from tomin.domain.entities import Tag
+    from carguito.domain.entities import Tag
 
     # Another user's identically-slugged tag must be insertable.
     container.tags.add(Tag(user_id=uuid4(), name="Viaje"))
@@ -115,7 +115,7 @@ def test_unknown_kind_is_a_400(client):
 
 
 def test_another_users_tag_is_a_404_not_a_403(app, client):
-    from tomin.domain.entities import Tag
+    from carguito.domain.entities import Tag
 
     theirs = Tag(user_id=uuid4(), name="Ajeno")
     app.extensions["container"].tags.add(theirs)

@@ -16,11 +16,11 @@ from uuid import UUID
 import pytest
 from sqlalchemy import inspect, text
 
-from tomin.adapters.outbound.persistence.db import Database
-from tomin.adapters.outbound.persistence.migrator import upgrade_to_head
-from tomin.domain.entities import Transaction
-from tomin.domain.services.flags import detect_flags
-from tomin.domain.value_objects.enums import TxType
+from carguito.adapters.outbound.persistence.db import Database
+from carguito.adapters.outbound.persistence.migrator import upgrade_to_head
+from carguito.domain.entities import Transaction
+from carguito.domain.services.flags import detect_flags
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -280,7 +280,7 @@ def test_migration_backfills_flags_on_pre_existing_rows(tmp_path):
     # Bring the schema to 0007 -- the last revision before the flags exist.
     from alembic import command
 
-    from tomin.adapters.outbound.persistence.migrator import _run, build_config
+    from carguito.adapters.outbound.persistence.migrator import _run, build_config
 
     _run(build_config(), db, command.upgrade, "0007")
 
