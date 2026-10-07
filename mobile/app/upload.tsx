@@ -213,7 +213,7 @@ export default function UploadScreen() {
     async function shareDashboard(res: UploadResult) {
         try {
             await Share.share({
-                message: `${res.transactionsCreated} movimientos de ${res.filename} en Tomin: ${res.dashboardUrl}`,
+                message: `${res.transactionsCreated} movimientos de ${res.filename} en Carguito: ${res.dashboardUrl}`,
                 url: res.dashboardUrl,
             });
         } catch {
