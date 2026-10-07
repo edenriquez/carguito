@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { appUrl, SITE } from "@/lib/site";
-import { FIGURES } from "@/lib/data";
+import { HERO } from "@/lib/data";
 import { Button } from "@/components/shared/Button";
 import { Highlight } from "@/components/shared/Highlight";
 import { MeshGradient } from "./MeshGradient";
@@ -8,9 +8,9 @@ import { MeshGradient } from "./MeshGradient";
 /**
  * The Stripe gesture on Carguito's terms: the opinion (statements are written
  * not to be read) and its answer in one line, one CTA, one trust line, and
- * below it one number set at 96px. The number is the proof: the
- * sub-headline's promise ("los cobros que se repiten") turned into a figure
- * a statement actually surfaced.
+ * below it one number set at 96px. The number is the proof: the example
+ * user's monthly spend as the Lectura opens on it, held against the ENIGH —
+ * the first finding the product gives, labelled as an example.
  */
 export function HeroB() {
     return (
@@ -18,7 +18,7 @@ export function HeroB() {
             <MeshGradient />
             <div className="relative mx-auto w-full max-w-page px-5 pb-16 pt-20 sm:px-8 sm:pb-24 sm:pt-28">
                 <p className="eyebrow rise">Finanzas personales para México</p>
-                <h1 className="rise mt-4 max-w-[16ch] text-display sm:text-display-lg">
+                <h1 className="rise mt-4 max-w-[18ch] text-display sm:text-display-lg">
                     Tu estado de cuenta no lo lee nadie. <Highlight>Carguito sí</Highlight>.
                 </h1>
                 <p className="rise rise-2 mt-6 max-w-prose text-body-lg text-dust">{SITE.description}</p>
@@ -40,11 +40,12 @@ export function HeroB() {
                 </p>
 
                 <div className="rise rise-3 mt-16 border-t border-line pt-8 sm:mt-24">
-                    <p className="tabular text-bone">
-                        <span className="text-metric-lg sm:text-metric-xl">{FIGURES.heroAmount}</span>
-                        <span className="text-title-md text-dust sm:text-title-lg">{FIGURES.heroAmountUnit}</span>
+                    <p className="eyebrow">Ejemplo · Tu gasto al mes</p>
+                    <p className="mt-3 tabular text-bone">
+                        <span className="text-metric-lg sm:text-metric-xl">{HERO.amount}</span>
+                        <span className="text-title-md text-dust sm:text-title-lg">{HERO.unit}</span>
                     </p>
-                    <p className="mt-3 max-w-prose text-body-lg text-dust">{FIGURES.heroCaption}</p>
+                    <p className="mt-3 max-w-prose text-body-lg text-dust">{HERO.caption}</p>
                 </div>
             </div>
         </section>

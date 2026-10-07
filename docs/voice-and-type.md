@@ -1,36 +1,36 @@
-# Voz y tipografía de Tomin
+# Voz y tipografía de Carguito
 
 Sustituye las decisiones tipográficas de `docs/redesign-plan.md` §6 y §10. 2026-09-05.
 
-Aplica a la landing (`landing/`) y al dashboard (`frontend/`): una voz, un sistema tipográfico. Los tokens viven en `frontend/src/design/tokens.ts` y se copian a la landing con `cd landing && npm run tokens:sync`; nunca se editan en `landing/src/design/tokens.ts`.
+Aplica a la landing (`landing/`) y al dashboard (`frontend/`): una voz y un sistema tipográfico, con una excepción desde 2026-10-06: la cara display de la landing es otra (§4, «La display de la landing»). Los tokens viven en `frontend/src/design/tokens.ts` y se copian a la landing con `cd landing && npm run tokens:sync`; nunca se editan en `landing/src/design/tokens.ts`.
 
 ## 1. Manifiesto de voz
 
-Tomin es audaz y tiene opinión. La opinión cabe en pocas frases y siempre trae su prueba al lado.
+Carguito es audaz y tiene opinión. La opinión cabe en pocas frases y siempre trae su prueba al lado.
 
-1. **Tomin tiene postura, no enemigos con nombre.** Opina sobre prácticas: el PDF que nadie puede leer, la app que pide la contraseña del banco, el número inventado. Nunca nombra a un banco ni a una app para criticarlos; los bancos aparecen solo en la lista de lo que Tomin sabe leer.
+1. **Carguito tiene postura, no enemigos con nombre.** Opina sobre prácticas: el PDF que nadie puede leer, la app que pide la contraseña del banco, el número inventado. Nunca nombra a un banco ni a una app para criticarlos; los bancos aparecen solo en la lista de lo que Carguito sabe leer.
 2. **Cada frase con filo trae su prueba al lado.** A un titular audaz lo sigue la mecánica: qué hace el código hoy. Sin cifras inventadas, testimonios, "IA", ni promesas fuera de producción. Las cifras de ejemplo se llaman así.
 3. **El filo vive en pocos lugares.** Titulares y entradas de sección de la landing, onboarding, titulares del Plan, títulos de estado vacío. Etiquetas, columnas, números, toasts, errores, ajustes y textos legales son neutros.
-4. **Quién habla.** El producto es Tomin, en tercera persona ("Tomin lo lee y lo desecha"). "Nosotros" solo firma compromisos de personas: privacidad, precio, reconocer un error. El usuario es "tú". Los controles hablan en la voz del usuario («Es entre mis cuentas»). El impersonal "se lee / se desecha" solo en chips de estado.
+4. **Quién habla.** El producto es Carguito, en tercera persona ("Carguito lo lee y lo desecha"). "Nosotros" solo firma compromisos de personas: privacidad, precio, reconocer un error. El usuario es "tú". Los controles hablan en la voz del usuario («Es entre mis cuentas»). El impersonal "se lee / se desecha" solo en chips de estado.
 5. **Corto, concreto, en presente.** Verbos de acción (lee, señala, desecha, empareja); sustantivos del banco mexicano (cargo, abono, quincena, nómina, estado de cuenta); sin anglicismos de app (transacción, dashboard, ledger). Una idea por oración.
-6. **Honesto hasta cuando duele.** Cuando Tomin no sabe, lo dice ("Tomin no adivina"); cuando algo falla, dice qué y qué hacer; cuando la lectura fue genérica, lo advierte. Un cero nunca es dato si es ausencia.
+6. **Honesto hasta cuando duele.** Cuando Carguito no sabe, lo dice ("Carguito no adivina"); cuando algo falla, dice qué y qué hacer; cuando la lectura fue genérica, lo advierte. Un cero nunca es dato si es ausencia.
 7. **Español de México.** Tú, celular, súper, ticket, quincena, nómina, banca en línea. Meses en minúscula; "$1,234.56"; "19%" pegado; siglas sin plural (los PDF, los CFDI).
 
 ### Las dos posturas
 
-- **Contra el PDF que nadie lee.** Hero: "Tu estado de cuenta no lo lee nadie. Tomin sí." La prueba va inmediatamente debajo (qué saca, qué señala, qué desecha) y en "Cómo funciona".
-- **Contra la app que pide la contraseña del banco.** Custodia: "Ninguna app debería pedirte la contraseña de tu banco." La prueba: Tomin no se conecta al banco; en la web el PDF viaja, se lee en memoria y se desecha; desde el celular (en pruebas) viaja solo el texto, cifrado.
+- **Contra el PDF que nadie lee.** Hero: "Tu estado de cuenta no lo lee nadie. Carguito sí." La prueba va inmediatamente debajo (qué saca, qué señala, qué desecha) y en "Cómo funciona".
+- **Contra la app que pide la contraseña del banco.** Custodia: "Ninguna app debería pedirte la contraseña de tu banco." La prueba: Carguito no se conecta al banco; en la web el PDF viaja, se lee en memoria y se desecha; desde el celular (en pruebas) viaja solo el texto, cifrado.
 
-Todo lo demás en la landing es prueba (las seis lecturas, los comercios que nombra, los bancos que lee), objeción respondida (FAQ) o cierre ("Tu estado de cuenta, leído.").
+Todo lo demás en la landing es prueba (la Lectura contra el país y las otras caras de Movimientos, Plan y Pagos, dibujadas como en el producto y con los títulos-hallazgo del producto; los comercios que nombra; los bancos que lee), objeción respondida (FAQ) o cierre ("Tu estado de cuenta, leído."). Cada gráfica de la landing corresponde a una que existe hoy en el dashboard: si la app quita o renombra una, la landing la quita o la renombra. Del lado del usuario las cifras son de ejemplo y se dicen así; del lado del país son las tablas publicadas del INEGI, copiadas en `landing/src/lib/pais.ts`.
 
 ## 2. Gramática y puntuación
 
 - **Punto final.** Sí en H1/H2 que son oraciones y en párrafos. No en títulos de tarjeta, títulos de estado vacío, titulares del Plan, eyebrows, labels, botones, nav, títulos de sheet o diálogo. Las preguntas de la FAQ llevan ¿…?
-- **Raya (—).** Un solo trabajo: el separador del `<title>` ("Tomin — …") y el dato ausente en tablas (`NO_DATE` en `frontend/src/lib/format.ts`). En prosa se usan comas, dos puntos o punto.
+- **Raya (—).** Un solo trabajo: el separador del `<title>` ("Carguito — …") y el dato ausente en tablas (`NO_DATE` en `frontend/src/lib/format.ts`). En prosa se usan comas, dos puntos o punto.
 - **Comillas «».** Para citar lo que aparece en pantalla o en el renglón del banco («POCK*SUPERLECLERC», «Preguntar»).
 - **Mayúsculas.** Tipo oración en todo. Los bancos como se escriben ellos (Banamex, Banco Azteca, Nu, BBVA). SAT, CFDI, PDF, XML, OCR en mayúsculas.
 - **Cifras.** `mxn()` en titulares y tooltips ("$9,140"); `mxn2()` en renglones cotejables ("$1,412.60"); "~" para estimaciones ("~$70,139"); plural correcto con conteo ("1 cobro", "14 cobros").
-- **Highlight.** Uno por titular, sobre la palabra que carga la promesa ("Tomin sí", "desecha", "estado de cuenta").
+- **Highlight.** Uno por titular, sobre la palabra que carga la promesa ("Carguito sí", "desecha", "estado de cuenta").
 
 ## 3. Glosario
 
@@ -47,7 +47,7 @@ Todo lo demás en la landing es prueba (las seis lecturas, los comercios que nom
 | Confirmado por el usuario | **fijo** / verbo **fijar** | fijo para no confirmados | "Fijar", "Quitar de fijos", "1 fijo" |
 | Detectado sin confirmar | **por confirmar** | sugeridos, resto | título de sección de Fijos |
 | Estimación de no confirmados | **sin confirmar ~$X** | resto recurrente | letra pequeña del titular de Fijos |
-| Lo que Tomin produce | **lectura** (f.) → "ninguna" | vista, análisis, lens, workstation | bento, workspace, LecturasMenu, WorkspaceSidebar |
+| Lo que Carguito produce | **lectura** (f.) → "ninguna" | vista, análisis, lens, workstation | bento, workspace, LecturasMenu, WorkspaceSidebar |
 | Nivel de parser | **lector dedicado / lector genérico** | lectura dedicada/genérica, plantilla | `BanksB.tsx`, `ReviewStatement`, FAQ |
 | Recibo del súper | **ticket** | recibo, tique, comprobante | Precios, Documentos, bento |
 | Ingreso con ritmo / sin | **nómina** / **extra** | sueldo, salario, freelance | Plan · Lo que entra |
@@ -67,16 +67,28 @@ Todo lo demás en la landing es prueba (las seis lecturas, los comercios que nom
 - Cadena de `display`: `var(--font-display), Georgia, "Times New Roman", serif`. Inter no está en la cadena a propósito: una serif que cayera a grotesca escondería una carga fallida.
 - `lang="es-MX"` en ambas apps.
 
+### La display de la landing
+
+Desde 2026-10-06 la landing no usa Instrument Serif: su display es **Bricolage Grotesque** (`Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variable: "--font-display" })` en `landing/src/app/layout.tsx`). El dashboard no cambia.
+
+- **Por qué.** La landing vende y el dashboard se lee. Con el cambio a Carguito, y su marca de banquito sonriente, la serif condensada sonaba a periódico; una grotesca con carácter (tinta en las uniones, `g` y `ñ` de dibujo propio) grita sin gritar y sigue siendo de México y de dinero, no de app genérica. Es variable con eje de tamaño óptico (`opsz` 12–96): el hero a 72 px toma el corte apretado de display y las preguntas de la FAQ a 24 px el corte robusto de texto, sin tocar nada.
+- **Español.** El subset `latin` trae á é í ó ú ü ñ ¿ ¡ « » completos.
+- **Peso 500, tracking −0.022em.** Una grotesca a 400 sobre Night se ve tímida y a 0 de tracking se abre. Sigue habiendo solo dos pesos: la display de la landing usa 500 (`font-medium`), como los eyebrows y los títulos de tarjeta. Se aplica en `landing/src/app/globals.css` (`html :is(h1, h2, .font-display)`), no en los tokens, que siguen copiándose tal cual.
+- **Cadena.** `landing/tailwind.config.ts` sobreescribe `fontFamily.display` a `var(--font-display), ui-sans-serif, system-ui, sans-serif`: una grotesca que cae a Georgia sería la carga fallida que sí se nota.
+- **Números.** Siguen en Inter tabular. Bricolage no lleva cifras en la landing; las gráficas de ejemplo usan Inter y el ticket una monoespaciada.
+- **La regla de 24 px se queda.** No por legibilidad (Bricolage aguanta 20 px) sino por sistema: bajo 24 px manda Inter en ambas apps, y así un título de tarjeta se ve igual en la landing que en el producto.
+- La OG image pide a la API CSS de Google Fonts `Bricolage+Grotesque:opsz,wght@96,500`: Satori no lee fuentes variables, así que recibe la instancia estática.
+
 ### Pesos
 
 Solo dos, definidos en `fontWeight` de los tokens y montados a nivel `theme` (no `extend`) en ambos `tailwind.config.ts`, así que `font-semibold` y `font-bold` no existen:
 
 | Token | Valor | Uso |
 |---|---|---|
-| `font-normal` | 400 | todo, incluida la display y las métricas |
-| `font-medium` | 500 | wordmark, eyebrows, títulos de tarjeta de la landing (`h3`/`h4`), botones, énfasis puntual en cuerpo |
+| `font-normal` | 400 | todo, incluida la display del dashboard y las métricas |
+| `font-medium` | 500 | wordmark, eyebrows, títulos de tarjeta de la landing (`h3`/`h4`), la display de la landing (`h1`/`h2`, FAQ), botones, énfasis puntual en cuerpo |
 
-La opinión sale de las palabras, del contraste y del tamaño, nunca del peso.
+La opinión sale de las palabras, del contraste y del tamaño, nunca del peso. El 500 de la display de la landing no es énfasis: es el peso al que esa grotesca se ve como la serif a 400.
 
 ### La regla de 24 px
 
@@ -112,5 +124,5 @@ Los tokens `metric-*` son de números y los `display`/`title-*` de palabras; nin
 
 - `npx tsc --noEmit` en `frontend/` y `landing/`; `npm run lint` solo en `landing/`. Nunca `next build` con los dev servers vivos.
 - `grep -rn "font-display" frontend/src landing/src | grep -E "font-medium|metric|title-sm|body"` debe devolver nada fuera de `components/dev/`.
-- `curl -s localhost:3001 | grep -o '/_next/static/media/[^"]*woff2'` debe listar dos archivos: Inter (~48 KB) e Instrument Serif (~15 KB).
-- La OG image (`landing/src/app/opengraph-image.tsx`) carga Instrument Serif desde la API CSS de Google Fonts en build; si la red falla, cae al sans del sistema sin romper el build.
+- `curl -s localhost:3001 | grep -o '/_next/static/media/[^"]*woff2'` debe listar dos archivos: Inter y Bricolage Grotesque (variable, `latin`). En `localhost:3000` siguen siendo Inter e Instrument Serif (~15 KB).
+- La OG image (`landing/src/app/opengraph-image.tsx`) carga Bricolage Grotesque 500 desde la API CSS de Google Fonts en build; si la red falla, cae al sans del sistema sin romper el build.

@@ -37,11 +37,11 @@
         @apply bg-night text-dust;
     }
 
-    /* h1/h2 carry the voice and sit at >=24px: the serif. h3/h4 are card and
-       cell titles at 20px, under the serif's floor: Inter 500. */
+    /* h1/h2 carry the voice and sit at >=24px: the display grotesque, at 500.
+       h3/h4 are card and cell titles at 20px, under the display floor: Inter 500. */
     h1,
     h2 {
-        @apply font-display font-normal text-ink;
+        @apply font-display font-medium text-ink;
         text-wrap: balance;
     }
 
@@ -124,5 +124,13 @@
             animation: none;
         }
     }
+}
+
+/* The tokens set display tracking to 0 for the dashboard's serif; a grotesque
+   at 24–72px wants it tight. Tailwind emits responsive variants after this
+   file's last rule, so `html` lifts it one element above `sm:text-display-lg`. */
+html :is(h1, h2, .font-display) {
+    font-weight: 500;
+    letter-spacing: -0.022em;
 }
 

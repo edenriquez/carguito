@@ -1,45 +1,42 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
+/**
+ * A reading card in the dashboard's order (EstadoView's `Card`): the title is
+ * the finding, the chart is its proof, the foot says what it means or where
+ * the number comes from. The eyebrow names the face or section it lives in.
+ * The chart is an illustration of example figures, so it is hidden from
+ * assistive tech; the title and the foot carry the words.
+ */
 export function BentoCard({
     eyebrow,
-    metric,
     title,
-    body,
-    mock,
+    foot,
+    children,
     className,
-    mockClassName,
+    chartClassName,
 }: {
     eyebrow: string;
-    metric?: string;
+    /** The finding, as the app words it. A card title, so no full stop. */
     title: string;
-    body: string;
-    mock: ReactNode;
+    foot: ReactNode;
+    children: ReactNode;
     className?: string;
-    mockClassName?: string;
+    chartClassName?: string;
 }) {
     return (
         <article
             className={cn(
-                "bento flex flex-col overflow-hidden rounded-panel border border-line bg-slate p-5 transition-transform duration-200 hover:-translate-y-0.5 sm:p-6",
+                "bento flex min-w-0 flex-col overflow-hidden rounded-panel border border-line bg-slate p-5 transition-transform duration-200 hover:-translate-y-0.5 sm:p-6",
                 className
             )}
         >
-            {/* The eyebrow never breaks mid-phrase; on a narrow card the metric drops to its own line, still right-aligned. */}
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <p className="eyebrow whitespace-nowrap">{eyebrow}</p>
-                {metric && (
-                    <p className="ml-auto tabular text-metric-sm text-bone sm:text-metric">{metric}</p>
-                )}
+            <p className="eyebrow">{eyebrow}</p>
+            <h3 className="mt-2 text-body-lg font-medium">{title}</h3>
+            <div aria-hidden className={cn("mt-5 flex flex-1 items-end", chartClassName)}>
+                {children}
             </div>
-            <div
-                aria-hidden
-                className={cn("mt-5 flex h-36 items-end overflow-hidden rounded-card bg-night/60 px-4 pb-3 pt-4 sm:h-44", mockClassName)}
-            >
-                {mock}
-            </div>
-            <h3 className="mt-5 text-title-sm">{title}</h3>
-            <p className="mt-1.5 text-body-sm text-dust">{body}</p>
+            <div className="mt-5 border-t border-line pt-4 text-body-sm text-dust">{foot}</div>
         </article>
     );
 }
