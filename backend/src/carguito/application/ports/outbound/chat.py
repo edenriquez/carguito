@@ -1,6 +1,6 @@
 """The one seam an LLM may reach the product through.
 
-Everything else in Tomin is deterministic by design -- a closed metric catalog,
+Everything else in Carguito is deterministic by design -- a closed metric catalog,
 a rule engine that returns a dormant principle rather than a guess. A chat
 answer is the first thing here that cannot be reproduced from the data alone,
 so it gets a narrow port with a null implementation, and every caller is written

@@ -1,6 +1,6 @@
 """External price references: what a thing costs *out there*, not what you paid.
 
-The one place in Tomin where a figure on screen does not come from a document
+The one place in Carguito where a figure on screen does not come from a document
 the user owns. That makes the contract narrower than it looks:
 
 * A quote always carries **who observed it, where and when**. A reference price

@@ -2,9 +2,9 @@ from datetime import date
 from decimal import Decimal
 from uuid import uuid4
 
-from tomin.adapters.outbound.cube import DuckDbCube
-from tomin.domain.entities import Category, Transaction
-from tomin.domain.value_objects.enums import TxType
+from carguito.adapters.outbound.cube import DuckDbCube
+from carguito.domain.entities import Category, Transaction
+from carguito.domain.value_objects.enums import TxType
 
 
 def test_cube_summary():

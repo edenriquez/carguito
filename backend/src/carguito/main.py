@@ -50,7 +50,7 @@ def create_app(settings: Settings | None = None) -> Flask:
     return app
 
 
-# Expose a module-level app for `flask --app tomin.main run`.
+# Expose a module-level app for `flask --app carguito.main run`.
 app = create_app()
 
 

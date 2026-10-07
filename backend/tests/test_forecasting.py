@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from tomin.domain.services.forecasting import ForecastingService, SimulationInput
+from carguito.domain.services.forecasting import ForecastingService, SimulationInput
 
 
 def test_projection_length_and_growth():

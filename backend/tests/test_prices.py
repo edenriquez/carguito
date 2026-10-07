@@ -19,9 +19,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from tomin.domain.entities import Receipt, ReceiptItem
-from tomin.domain.services.prices import build_price_book, find_product
-from tomin.domain.services.products import product_key
+from carguito.domain.entities import Receipt, ReceiptItem
+from carguito.domain.services.prices import build_price_book, find_product
+from carguito.domain.services.products import product_key
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -54,7 +54,7 @@ def _receipt(store: str, day: int, items: list[tuple[str, str, str | None]]) -> 
 
 
 def _size(description: str):
-    from tomin.domain.services.products import parse_size
+    from carguito.domain.services.products import parse_size
 
     return parse_size(description)
 
@@ -335,7 +335,7 @@ class _FakeReference:
 
 
 def _quote(term="leche", kind="LECHE ULTRAPASTEURIZADA"):
-    from tomin.application.ports.outbound.references import PriceQuote
+    from carguito.application.ports.outbound.references import PriceQuote
 
     return PriceQuote(
         term=term,
@@ -353,7 +353,7 @@ def _quote(term="leche", kind="LECHE ULTRAPASTEURIZADA"):
 
 
 def _answerer(app, reference):
-    from tomin.application.use_cases.prices import AnswerPriceQuestion
+    from carguito.application.use_cases.prices import AnswerPriceQuestion
 
     container = app.extensions["container"]
     return AnswerPriceQuestion(
@@ -437,7 +437,7 @@ def test_a_persons_answer_is_never_overwritten_by_a_proposal(app):
 def test_a_proposal_that_is_not_a_term_is_refused(app):
     """Rejects rather than repairs: a stored sentence would be sent to a price
     survey forever."""
-    from tomin.application.use_cases.prices import _clean_term
+    from carguito.application.use_cases.prices import _clean_term
 
     assert _clean_term("detergente") == "detergente"
     assert _clean_term("Detergente.") == "detergente"
@@ -458,7 +458,7 @@ class _Decisions:
         self.asked: list = []
 
     def evaluate(self, *, state, questions):
-        from tomin.application.ports.outbound.decisions import ChoiceAnswer
+        from carguito.application.ports.outbound.decisions import ChoiceAnswer
 
         self.asked.append((state, questions))
         options = list(questions["term"].criteria)
@@ -487,8 +487,8 @@ class _Writer:
 
 
 def _resolver(app, decisions=None, chat=None):
-    from tomin.application.use_cases.prices import ResolveProductTerms
-    from tomin.application.ports.outbound.decisions import NullDecisions
+    from carguito.application.use_cases.prices import ResolveProductTerms
+    from carguito.application.ports.outbound.decisions import NullDecisions
 
     container = app.extensions["container"]
     return ResolveProductTerms(
@@ -518,7 +518,7 @@ def test_a_confident_choice_is_stored_and_the_text_model_is_never_asked(app):
 def test_declining_hands_the_line_to_the_text_model(app):
     """Both ways of declining mean the same thing here: this line is not one of
     the words we have, so ask the model that can invent one."""
-    from tomin.application.use_cases.prices import UNKNOWN_TERM
+    from carguito.application.use_cases.prices import UNKNOWN_TERM
 
     for decisions in (_Decisions(UNKNOWN_TERM, 0.99), _Decisions("jabon", 0.31)):
         writer = _Writer("detergente")
@@ -534,7 +534,7 @@ def test_declining_hands_the_line_to_the_text_model(app):
 def test_a_word_written_once_becomes_a_word_choosable_after(app):
     """How the vocabulary grows. The text model is asked about a product no seed
     covers; the next line of the same kind is a Choice, not a sentence."""
-    from tomin.application.use_cases.prices import SEED_TERMS, UNKNOWN_TERM
+    from carguito.application.use_cases.prices import SEED_TERMS, UNKNOWN_TERM
 
     assert "michelada" not in SEED_TERMS
     writer = _Writer("michelada")
@@ -554,7 +554,7 @@ def test_a_word_written_once_becomes_a_word_choosable_after(app):
 def test_the_vocabulary_puts_the_users_own_words_first_and_is_capped(app):
     """The cap has to cut somewhere, and a word this account already uses is
     worth more than one nobody here has needed."""
-    from tomin.application.use_cases.prices import (
+    from carguito.application.use_cases.prices import (
         MAX_TERM_OPTIONS,
         SEED_TERMS,
         UNKNOWN_TERM,
@@ -633,7 +633,7 @@ def test_the_reducer_keeps_per_litre_and_per_kilo_prices():
     threw the presentation away and the model — correctly — refused to convert
     a 500 g bag into litres. The comparable figure has to survive the reduction.
     """
-    from tomin.adapters.outbound.references.profeco import _reduce
+    from carguito.adapters.outbound.references.profeco import _reduce
 
     rows = [
         {"tipo_producto": "DETERGENTE P/ROPA", "precio": 115, "cadena_comercial": "BODEGA AURRERA",
@@ -661,7 +661,7 @@ def test_only_store_pages_survive_the_search_filter():
     """A news article about a promotion two years ago is a real search result and
     a worthless price. The domain is the one signal that separates them without
     reading the page."""
-    from tomin.adapters.outbound.references.brave import is_store
+    from carguito.adapters.outbound.references.brave import is_store
 
     assert is_store("https://despensa.bodegaaurrera.com.mx/ip/detergente-liquido-7-l/0075")
     assert is_store("https://super.walmart.com.mx/ip/algo/123")
@@ -672,7 +672,7 @@ def test_only_store_pages_survive_the_search_filter():
 
 
 def test_extracted_listings_are_validated_not_repaired():
-    from tomin.adapters.outbound.references.web_listings import _to_units
+    from carguito.adapters.outbound.references.web_listings import _to_units
 
     handed = {"https://despensa.bodegaaurrera.com.mx/ip/gv-7l/1"}
     rows = [
@@ -699,7 +699,7 @@ def test_extracted_listings_are_validated_not_repaired():
 
 
 def test_the_models_json_is_tolerated_only_as_json():
-    from tomin.adapters.outbound.references.web_listings import parse_listings
+    from carguito.adapters.outbound.references.web_listings import parse_listings
 
     assert parse_listings('```json\n[{"url": "u"}]\n```') == [{"url": "u"}]
     assert parse_listings("[]") == []
@@ -710,8 +710,8 @@ def test_the_models_json_is_tolerated_only_as_json():
 def test_the_web_reference_reads_a_quote_out_of_search_plus_model(app):
     """End to end with both halves faked: a store hit goes to the model, the
     model's JSON comes back as a per-litre quote labelled as a listing."""
-    from tomin.adapters.outbound.references.brave import SearchHit
-    from tomin.adapters.outbound.references.web_listings import WebPriceReference
+    from carguito.adapters.outbound.references.brave import SearchHit
+    from carguito.adapters.outbound.references.web_listings import WebPriceReference
 
     class _Search:
         available = True
@@ -738,7 +738,7 @@ def test_the_web_reference_reads_a_quote_out_of_search_plus_model(app):
 def test_the_composite_answers_with_whatever_source_is_healthy():
     import time as _time
 
-    from tomin.application.ports.outbound.references import CompositePriceReference
+    from carguito.application.ports.outbound.references import CompositePriceReference
 
     class _Slow(_FakeReference):
         def lookup(self, terms, *, hint=""):
@@ -764,8 +764,8 @@ def test_the_composite_answers_with_whatever_source_is_healthy():
 
 
 def test_the_container_composes_profeco_and_web_only_when_configured(tmp_path):
-    from tomin.config.container import Container
-    from tomin.config.settings import Settings
+    from carguito.config.container import Container
+    from carguito.config.settings import Settings
 
     base = dict(database_url=f"sqlite:///{tmp_path/'t.db'}", cube_path=":memory:",
                 ingest_key_path=str(tmp_path / "k.json"), run_migrations=False)
@@ -785,7 +785,7 @@ def test_the_container_composes_profeco_and_web_only_when_configured(tmp_path):
 
 
 def test_amazon_results_parse_into_per_litre_quotes_and_drop_what_they_cannot():
-    from tomin.adapters.outbound.references.amazon import parse_results
+    from carguito.adapters.outbound.references.amazon import parse_results
 
     item = (
         '<div data-component-type="s-search-result" data-asin="{asin}">{ad}<h2 class="x">'
@@ -814,14 +814,14 @@ def test_amazon_results_parse_into_per_litre_quotes_and_drop_what_they_cannot():
 
 
 def test_a_robot_check_page_yields_nothing_not_an_error():
-    from tomin.adapters.outbound.references.amazon import parse_results
+    from carguito.adapters.outbound.references.amazon import parse_results
 
     assert parse_results("<html><body>Escribe los caracteres que ves</body></html>") == []
 
 
 
 def test_a_rendered_page_is_condensed_to_its_price_lines():
-    from tomin.adapters.outbound.references.firecrawl import condense
+    from carguito.adapters.outbound.references.firecrawl import condense
 
     page = "\n".join([
         "# Menú", "Inicio", "Despensa", "",
@@ -842,7 +842,7 @@ def test_a_rendered_page_is_condensed_to_its_price_lines():
 def test_firecrawl_results_become_store_hits_with_condensed_text(monkeypatch):
     import json as _json
 
-    from tomin.adapters.outbound.references import firecrawl as fc
+    from carguito.adapters.outbound.references import firecrawl as fc
 
     payload = {"success": True, "data": [
         {"url": "https://www.soriana.com/detergente-quality-day-7-l/1187.html",
@@ -872,8 +872,8 @@ def test_firecrawl_results_become_store_hits_with_condensed_text(monkeypatch):
 
 
 def test_the_container_wires_firecrawl_behind_a_key_and_a_model(tmp_path):
-    from tomin.config.container import Container
-    from tomin.config.settings import Settings
+    from carguito.config.container import Container
+    from carguito.config.settings import Settings
 
     base = dict(database_url=f"sqlite:///{tmp_path/'t.db'}", cube_path=":memory:",
                 ingest_key_path=str(tmp_path / "k.json"), run_migrations=False)
@@ -890,9 +890,9 @@ def test_the_container_wires_firecrawl_behind_a_key_and_a_model(tmp_path):
 def test_a_rate_limited_reader_hands_the_pages_to_the_fallback(monkeypatch):
     """The pages were paid for in credits; a second model is cheaper than a
     second render."""
-    from tomin.adapters.outbound.references import web_listings as wl
-    from tomin.adapters.outbound.references.brave import SearchHit
-    from tomin.application.ports.outbound.chat import ChatUnavailable
+    from carguito.adapters.outbound.references import web_listings as wl
+    from carguito.adapters.outbound.references.brave import SearchHit
+    from carguito.application.ports.outbound.chat import ChatUnavailable
 
     monkeypatch.setattr(wl.time, "sleep", lambda s: None)
     hit = SearchHit(url="https://www.soriana.com/x/1.html", title="Quality Day 7 l", snippet="$169.90")

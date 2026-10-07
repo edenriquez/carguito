@@ -14,7 +14,7 @@ class TransientFileStorage:
     """
 
     def __init__(self, base_dir: str | None = None) -> None:
-        self._base = base_dir or os.path.join(tempfile.gettempdir(), "tomin_transient")
+        self._base = base_dir or os.path.join(tempfile.gettempdir(), "carguito_transient")
         os.makedirs(self._base, exist_ok=True)
 
     def save(self, data: bytes, filename: str) -> str:

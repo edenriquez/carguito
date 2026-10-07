@@ -10,8 +10,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "sqlite:///tomin.db"
-    cube_path: str = "tomin_cube.duckdb"
+    database_url: str = "sqlite:///carguito.db"
+    cube_path: str = "carguito_cube.duckdb"
     # The device-ingest keypair (docs/custody-plan.md F1). A file rather than an
     # env var so first boot needs no ceremony, and outside git so the secret half
     # never ships with the code — see backend/.gitignore.

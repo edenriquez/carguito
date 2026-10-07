@@ -120,7 +120,7 @@ class ProfecoPriceReference:
                 # the difference between 6 MB and 150 KB on every question.
                 "accept-encoding": "gzip",
                 "authorization": _BASIC,
-                "user-agent": "tomin/0.2 (+https://github.com/tomin)",
+                "user-agent": "carguito/0.2 (+https://github.com/carguito)",
             },
             method="GET",
         )

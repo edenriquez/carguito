@@ -13,9 +13,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from tomin.application.ports.outbound.chat import ChatMessage
-from tomin.application.use_cases.workstation_chat import SYSTEM, TITLE_SYSTEM
-from tomin.domain.entities.conversation import (
+from carguito.application.ports.outbound.chat import ChatMessage
+from carguito.application.use_cases.workstation_chat import SYSTEM, TITLE_SYSTEM
+from carguito.domain.entities.conversation import (
     MAX_TITLE_LENGTH,
     sanitize_inferred_title,
     title_from_question,

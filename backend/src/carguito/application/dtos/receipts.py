@@ -26,7 +26,7 @@ class ParsedReceiptItem:
 class ParsedReceipt:
     """What a reader made of the OCR lines, before any of it is persisted.
 
-    Mirrors :class:`~tomin.application.dtos.extraction.ParsedStatement`'s role
+    Mirrors :class:`~carguito.application.dtos.extraction.ParsedStatement`'s role
     in the statement pipeline: the boundary between "someone read the text" and
     "the application stores facts".
     """

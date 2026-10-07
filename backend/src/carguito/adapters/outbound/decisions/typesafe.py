@@ -7,7 +7,7 @@ list to spell a request this file spells in forty lines. The same judgement
 that kept this repo to Flask, SQLAlchemy and DuckDB.
 
 The provider asks for exponential backoff on 429 and 529 and its SDK does it,
-so this file does it too -- but twice and briefly. Every caller in Tomin runs
+so this file does it too -- but twice and briefly. Every caller in Carguito runs
 this inside a request the user is waiting on, and a decision that is never
 load-bearing must not be the reason a page takes ten seconds.
 """

@@ -3,7 +3,7 @@
 A card statement carries three figures the movement list never will: the
 payment that avoids interest, the minimum payment, and the day both are due.
 For someone reading their own statement for the first time, the due date is
-the single most consequential number on the page -- and the one Tomin could
+the single most consequential number on the page -- and the one Carguito could
 not show, because the parsers read movements and nothing else.
 
 This reads those figures off the text of *any* statement, bank-agnostic, by

@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from tomin.domain.services.credit_summary import read_credit_summary
+from carguito.domain.services.credit_summary import read_credit_summary
 
 CARD = """\
 ESTADO DE CUENTA TARJETA DE CRÉDITO

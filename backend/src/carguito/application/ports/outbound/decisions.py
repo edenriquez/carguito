@@ -1,7 +1,7 @@
 """Typed decisions: the second model seam, and the narrow one.
 
 :mod:`chat` exists because an *answer in words* cannot be computed from the
-data. This port exists for the opposite reason: a handful of places in Tomin
+data. This port exists for the opposite reason: a handful of places in Carguito
 need a **decision**, not prose -- which of these words names this product,
 is this question asking about a store we do not have, are these two lines the
 same thing. Today those are asked of a text model at ``temperature=0`` and the

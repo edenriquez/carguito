@@ -16,8 +16,8 @@ import urllib.request
 
 import pytest
 
-from tomin.adapters.outbound.decisions import TypeSafeDecisions
-from tomin.application.ports.outbound.decisions import (
+from carguito.adapters.outbound.decisions import TypeSafeDecisions
+from carguito.application.ports.outbound.decisions import (
     Choice,
     ChoiceAnswer,
     DecisionsUnavailable,
@@ -171,7 +171,7 @@ def test_a_frame_that_cannot_be_read_costs_the_answer_not_the_request(monkeypatc
 
 
 def test_busy_is_retried_and_broken_is_not(monkeypatch, decisions):
-    monkeypatch.setattr("tomin.adapters.outbound.decisions.typesafe._RETRY_DELAYS", (0.0, 0.0))
+    monkeypatch.setattr("carguito.adapters.outbound.decisions.typesafe._RETRY_DELAYS", (0.0, 0.0))
 
     wire = _Wire(_http_error(429), _http_error(529), _body({"q": {"type": "noul", "noul": 1.0}}))
     monkeypatch.setattr(urllib.request, "urlopen", wire)
@@ -191,7 +191,7 @@ def test_busy_is_retried_and_broken_is_not(monkeypatch, decisions):
 
 
 def test_a_provider_that_stays_busy_gives_up(monkeypatch, decisions):
-    monkeypatch.setattr("tomin.adapters.outbound.decisions.typesafe._RETRY_DELAYS", (0.0, 0.0))
+    monkeypatch.setattr("carguito.adapters.outbound.decisions.typesafe._RETRY_DELAYS", (0.0, 0.0))
     monkeypatch.setattr(urllib.request, "urlopen", _Wire(*[_http_error(429)] * 3))
 
     with pytest.raises(DecisionsUnavailable):

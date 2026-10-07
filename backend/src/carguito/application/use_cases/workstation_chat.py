@@ -7,7 +7,7 @@ both read one `cohort_profile` call. Re-deriving the numbers for the prompt
 would create a second arithmetic nobody is checking.
 
 **The system prompt** carries this product's posture into a component that has
-none of its own. Everything else in Tomin can say "no lo sé" -- the advisor
+none of its own. Everything else in Carguito can say "no lo sé" -- the advisor
 returns a dormant principle, the metric layer withholds a rate it cannot state.
 A language model will not do that unless told, repeatedly and specifically, and
 one confident invented peso figure would cost more trust than the feature buys.
@@ -35,7 +35,7 @@ from .workstation_tools import LensTools, Row
 MAX_ROWS = 2000
 
 SYSTEM = """\
-Eres el analista de Tomin, una app de finanzas personales mexicana.
+Eres el analista de Carguito, una app de finanzas personales mexicana.
 
 Respondes preguntas sobre UN conjunto de movimientos que el usuario definió con
 una regla. Todo lo que sabes está en el resumen que te dan abajo.

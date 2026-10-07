@@ -16,9 +16,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from tomin.domain.entities import Transaction
-from tomin.domain.services.transfers import TransferPartyService, pair_transfers
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction
+from carguito.domain.services.transfers import TransferPartyService, pair_transfers
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 

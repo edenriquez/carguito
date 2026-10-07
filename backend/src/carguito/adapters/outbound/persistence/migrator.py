@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 def _alembic_config_path() -> Path:
     """Locate ``backend/alembic.ini`` relative to this module."""
-    # .../backend/src/tomin/adapters/outbound/persistence/migrator.py
+    # .../backend/src/carguito/adapters/outbound/persistence/migrator.py
     backend_root = Path(__file__).resolve().parents[5]
     path = backend_root / "alembic.ini"
     if not path.is_file():

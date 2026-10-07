@@ -16,8 +16,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from tomin.domain.entities import Transaction, WorkstationRule
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction, WorkstationRule
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -182,7 +182,7 @@ def test_a_workstation_with_no_exclusions_carries_no_exclude_filter(client):
 
 
 def test_too_many_exclusions_is_refused(client):
-    from tomin.domain.entities import MAX_EXCLUSIONS
+    from carguito.domain.entities import MAX_EXCLUSIONS
 
     too_many = [str(uuid4()) for _ in range(MAX_EXCLUSIONS + 1)]
     resp = _create(client, excluded_tx_ids=too_many)
@@ -422,7 +422,7 @@ def test_a_nested_group_is_a_400(client):
 
 
 def test_too_many_filters_in_one_group_is_a_400(client):
-    from tomin.domain.entities import MAX_CLAUSES
+    from carguito.domain.entities import MAX_CLAUSES
 
     resp = _create(
         client,

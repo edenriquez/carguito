@@ -1,8 +1,8 @@
 [project]
-name = "tomin-backend"
+name = "carguito-backend"
 version = "0.2.0"
-description = "Tomin backend: hexagonal Flask API with a local OCR/parse pipeline and DuckDB analytics cube"
-authors = [{ name = "Tomin Team" }]
+description = "Carguito backend: hexagonal Flask API with a local OCR/parse pipeline and DuckDB analytics cube"
+authors = [{ name = "Carguito Team" }]
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0",

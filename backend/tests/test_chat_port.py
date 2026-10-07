@@ -21,17 +21,17 @@ from uuid import UUID
 
 import pytest
 
-from tomin.adapters.outbound.chat import NullChat
-from tomin.adapters.outbound.metrics import CohortProfileResolver
-from tomin.application.dtos.metrics import Period
-from tomin.application.ports.outbound.chat import ChatMessage, ChatUnavailable
-from tomin.application.use_cases import workstation_chat
-from tomin.application.use_cases.workstation_chat import (
+from carguito.adapters.outbound.chat import NullChat
+from carguito.adapters.outbound.metrics import CohortProfileResolver
+from carguito.application.dtos.metrics import Period
+from carguito.application.ports.outbound.chat import ChatMessage, ChatUnavailable
+from carguito.application.use_cases import workstation_chat
+from carguito.application.use_cases.workstation_chat import (
     SYSTEM,
     AnswerWorkstationQuestion,
 )
-from tomin.domain.entities import Transaction, Workstation, WorkstationRule
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction, Workstation, WorkstationRule
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 
@@ -109,7 +109,7 @@ def test_null_chat_reports_unavailable_rather_than_raising_on_construction():
 
 
 def test_fallback_chat_uses_the_second_model_when_the_first_refuses():
-    from tomin.adapters.outbound.chat import FallbackChat
+    from carguito.adapters.outbound.chat import FallbackChat
 
     class Dead:
         available = True

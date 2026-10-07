@@ -58,7 +58,7 @@ DETAIL_POINTS = 12
 REFERENCE_TERMS = 2
 
 SYSTEM = """\
-Eres el analista de precios de Tomin, una app de finanzas personales mexicana.
+Eres el analista de precios de Carguito, una app de finanzas personales mexicana.
 
 Respondes preguntas sobre lo que el usuario ha pagado por sus productos, según
 los tickets que él mismo fotografió. Todo lo que sabes está en el resumen de
