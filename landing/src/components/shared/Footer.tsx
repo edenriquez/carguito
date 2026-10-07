@@ -25,7 +25,7 @@ export function Footer({ tone = "light" }: { tone?: Tone }) {
         <footer className={cn("border-t py-8", dark ? "border-line" : "border-mist")}>
             <div className="mx-auto flex w-full max-w-page flex-col gap-4 px-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                 <p className={cn("text-body-sm", dark ? "text-dust" : "text-ash")}>
-                    Tomin. Finanzas personales para México.
+                    Carguito. Finanzas personales para México.
                 </p>
                 <nav aria-label="Pie de página" className="flex flex-wrap gap-x-5 gap-y-2">
                     {LINKS.map((l) => (

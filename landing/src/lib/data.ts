@@ -55,7 +55,7 @@ export const CHARGED = new Set([2, 9, 16, 23, 30, 37]);
 
 /**
  * What the backend can read today, by how well it reads it. Mirrors
- * `backend/src/tomin/adapters/outbound/extraction/classifier.py` and
+ * `backend/src/carguito/adapters/outbound/extraction/classifier.py` and
  * `parsing/factory.py`: two banks have a parser written for their layout;
  * the rest are recognised by name and read with the generic parser; the SAT
  * XML has its own reader. Keep this list honest — it is the one place the

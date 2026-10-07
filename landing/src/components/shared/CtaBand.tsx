@@ -18,7 +18,7 @@ export function CtaBand({ tone = "light" }: { tone?: Tone }) {
                 <div className="min-w-[16rem] flex-1">
                     <h2 className="text-title-md sm:text-title-lg">Tu estado de cuenta, leído.</h2>
                     <p className={cn("mt-2 text-body-lg", dark ? "text-dust" : "text-graphite")}>
-                        Un archivo basta. Tomin lo lee, lo desecha y te deja tus números.
+                        Un archivo basta. Carguito lo lee, lo desecha y te deja tus números.
                     </p>
                 </div>
                 <Button href={appUrl("band")} size="lg" tone={tone}>

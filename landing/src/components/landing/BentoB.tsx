@@ -61,7 +61,7 @@ export function BentoB() {
                     eyebrow="Plan · Lo que se va"
                     metric={`${FIGURES.fixedMonthly}/mes`}
                     title="Los cobros que se repiten"
-                    body={`Tomin los encuentra solo; aquí, ${FIGURES.fixedCount} ${FIGURES.fixedCaption}. Tú fijas los que sí o sí se cobran, y quedan con su ritmo y su próxima fecha.`}
+                    body={`Carguito los encuentra solo; aquí, ${FIGURES.fixedCount} ${FIGURES.fixedCaption}. Tú fijas los que sí o sí se cobran, y quedan con su ritmo y su próxima fecha.`}
                     mock={<CalendarMock p={DARK} />}
                 />
                 <BentoCard
@@ -69,7 +69,7 @@ export function BentoB() {
                     eyebrow="Plan · Lo que entra"
                     metric={FIGURES.forecastNeed}
                     title="Lo que necesitas antes de la quincena"
-                    body="Etiqueta un abono como nómina una vez. Desde ahí, Tomin contrasta lo que te entra con lo que ya está comprometido."
+                    body="Etiqueta un abono como nómina una vez. Desde ahí, Carguito contrasta lo que te entra con lo que ya está comprometido."
                     mock={<ForecastMock p={DARK} />}
                 />
                 <BentoCard
@@ -77,7 +77,7 @@ export function BentoB() {
                     eyebrow="Precios · desde el celular"
                     metric={FIGURES.ticketDelta}
                     title={FIGURES.ticketLine}
-                    body="El ticket del súper, leído renglón por renglón: Tomin sigue el precio de cada producto entre una compra y la siguiente. Los tickets entran con la app del celular, que hoy está en pruebas."
+                    body="El ticket del súper, leído renglón por renglón: Carguito sigue el precio de cada producto entre una compra y la siguiente. Los tickets entran con la app del celular, que hoy está en pruebas."
                     mock={<TicketMock p={DARK} className="h-full w-full max-w-[200px]" />}
                     mockClassName="h-32 items-center justify-center sm:h-36"
                 />
