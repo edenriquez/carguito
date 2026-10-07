@@ -1,7 +1,7 @@
 import { BANKS } from "@/lib/data";
 
 /**
- * The one checkable claim on the page: which statements Tomin reads and how
+ * The one checkable claim on the page: which statements Carguito reads and how
  * well. Two tiers plus the SAT, named plainly: no logos, no "y más". A bank
  * moves from "lector genérico" to "lector dedicado" when the backend gets a
  * parser for it. Honesty is the proof here, so nothing in it has an edge.
@@ -16,7 +16,7 @@ export function BanksB() {
         {
             eyebrow: "Lector genérico",
             names: BANKS.generic,
-            body: "Tomin reconoce el banco y lee el PDF con el lector genérico. Lo que no cuadre, lo corriges ahí mismo.",
+            body: "Carguito reconoce el banco y lee el PDF con el lector genérico. Lo que no cuadre, lo corriges ahí mismo.",
         },
         {
             eyebrow: "Facturas",
@@ -27,7 +27,7 @@ export function BanksB() {
     return (
         <section id="bancos" className="mx-auto w-full max-w-page scroll-mt-20 px-5 py-14 sm:px-8 sm:py-20">
             <p className="eyebrow">Bancos</p>
-            <h2 className="mt-3 max-w-[24ch] text-title-md sm:text-title-lg">Lo que Tomin sabe leer hoy.</h2>
+            <h2 className="mt-3 max-w-[24ch] text-title-md sm:text-title-lg">Lo que Carguito sabe leer hoy.</h2>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {tiers.map((t) => (
                     <div key={t.eyebrow} className="rounded-panel border border-line bg-slate p-5 sm:p-6">

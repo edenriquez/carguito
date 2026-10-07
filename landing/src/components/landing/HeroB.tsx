@@ -6,7 +6,7 @@ import { Highlight } from "@/components/shared/Highlight";
 import { MeshGradient } from "./MeshGradient";
 
 /**
- * The Stripe gesture on Tomin's terms: the opinion (statements are written
+ * The Stripe gesture on Carguito's terms: the opinion (statements are written
  * not to be read) and its answer in one line, one CTA, one trust line, and
  * below it one number set at 96px. The number is the proof: the
  * sub-headline's promise ("los cobros que se repiten") turned into a figure
@@ -19,7 +19,7 @@ export function HeroB() {
             <div className="relative mx-auto w-full max-w-page px-5 pb-16 pt-20 sm:px-8 sm:pb-24 sm:pt-28">
                 <p className="eyebrow rise">Finanzas personales para México</p>
                 <h1 className="rise mt-4 max-w-[16ch] text-display sm:text-display-lg">
-                    Tu estado de cuenta no lo lee nadie. <Highlight>Tomin sí</Highlight>.
+                    Tu estado de cuenta no lo lee nadie. <Highlight>Carguito sí</Highlight>.
                 </h1>
                 <p className="rise rise-2 mt-6 max-w-prose text-body-lg text-dust">{SITE.description}</p>
                 <div className="rise rise-2 mt-8 flex flex-wrap items-center gap-4">
@@ -35,7 +35,7 @@ export function HeroB() {
                 </div>
                 <p className="rise rise-2 mt-4 flex items-center gap-1.5 text-body-sm text-dust">
                     <ShieldCheck size={14} aria-hidden className="text-signal" />
-                    Tomin nunca pide la contraseña de tu banco. La del PDF, si trae una, la usa una vez y no la
+                    Carguito nunca pide la contraseña de tu banco. La del PDF, si trae una, la usa una vez y no la
                     guarda. Hoy no cobramos.
                 </p>
 

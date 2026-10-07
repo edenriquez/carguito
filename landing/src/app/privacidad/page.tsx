@@ -7,7 +7,7 @@ import "../landing.css";
 export const metadata: Metadata = {
     title: "Privacidad",
     description:
-        "Qué recibe Tomin, qué guarda y qué no puede prometer. El PDF se lee y se desecha; los movimientos se guardan; el servidor los puede ver.",
+        "Qué recibe Carguito, qué guarda y qué no puede prometer. El PDF se lee y se desecha; los movimientos se guardan; el servidor los puede ver.",
     alternates: { canonical: "/privacidad" },
 };
 
@@ -24,7 +24,7 @@ const SECTIONS: ReadonlyArray<{ title: string; items: string[] }> = [
         items: [
             "El PDF de tu estado de cuenta o el XML de tus facturas del SAT, cuando tú lo subes desde el navegador. Viaja cifrado en tránsito (TLS).",
             "Si el PDF está protegido, la contraseña del archivo. Se usa una vez para abrirlo y se descarta con el resto de la petición; no se guarda ni se registra en logs.",
-            "Nunca la contraseña ni el usuario de tu banca en línea. Tomin no se conecta a tu banco.",
+            "Nunca la contraseña ni el usuario de tu banca en línea. Carguito no se conecta a tu banco.",
         ],
     },
     {
@@ -39,7 +39,7 @@ const SECTIONS: ReadonlyArray<{ title: string; items: string[] }> = [
     {
         title: "Qué guardamos",
         items: [
-            "Los movimientos extraídos: fecha, monto, descripción tal como venía en el estado y la categoría que Tomin les asignó.",
+            "Los movimientos extraídos: fecha, monto, descripción tal como venía en el estado y la categoría que Carguito les asignó.",
             "Los datos del estado de cuenta que hacen falta para ordenarlos: banco, tipo de cuenta y periodo.",
             "Lo que tú le enseñas: nombres que renombras, etiquetas, correcciones y cobros fijos que registras.",
         ],
@@ -66,10 +66,10 @@ export default function Privacidad() {
             <article className="mx-auto w-full max-w-page px-5 pb-16 pt-16 sm:px-8 sm:pb-24 sm:pt-24">
                 <p className="eyebrow">Privacidad</p>
                 <h1 className="mt-4 max-w-[18ch] text-title-lg sm:text-display">
-                    Tomin lee tu archivo y lo <Highlight>desecha</Highlight>. Tus números se quedan.
+                    Carguito lee tu archivo y lo <Highlight>desecha</Highlight>. Tus números se quedan.
                 </h1>
                 <p className="mt-6 max-w-prose text-body-lg text-dust">
-                    Esta página dice exactamente qué recibe Tomin, qué guarda y qué no puede prometer todavía. Está
+                    Esta página dice exactamente qué recibe Carguito, qué guarda y qué no puede prometer todavía. Está
                     escrita contra el código que corre hoy, no contra un plan.
                 </p>
                 <div className="mt-12 grid gap-10 sm:mt-16 sm:grid-cols-[minmax(0,220px)_minmax(0,640px)] sm:gap-x-12">

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { SITE } from "@/lib/site";
+import { BankMark } from "@/components/shared/BankMark";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -13,7 +14,7 @@ export const alt = SITE.title;
  * falls back to Satori's system sans rather than failing the build.
  */
 /** SITE.headline split around the highlight. Word groups wrap as units in Satori, so the first half is two. */
-const HEADLINE = { before: ["Tu estado de cuenta", "no lo lee nadie."], highlight: "Tomin sí", after: "." };
+const HEADLINE = { before: ["Tu estado de cuenta", "no lo lee nadie."], highlight: "Carguito sí", after: "." };
 
 async function loadDisplayFont(text: string): Promise<ArrayBuffer | null> {
     try {
@@ -51,12 +52,7 @@ export default async function OpenGraphImage() {
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 30 }}>
-                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M12 3c1.5 2.5 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.6 1.4-3.6.3 1.1 1 1.9 2 2.2C11 7.5 11.5 5 12 3z"
-                            fill="#3ba6f1"
-                        />
-                    </svg>
+                    <BankMark size={40} />
                     {SITE.name}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
