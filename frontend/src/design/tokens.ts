@@ -1,5 +1,5 @@
 /**
- * Tomin design tokens — the single source of truth.
+ * Carguito design tokens — the single source of truth.
  *
  * Imported by `tailwind.config.ts` (Tailwind 3.4 compiles TS configs natively)
  * and by the ApexCharts theme, so CSS and charts cannot drift apart.

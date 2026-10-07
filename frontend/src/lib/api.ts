@@ -1,5 +1,5 @@
 /**
- * Thin client for the Tomin backend API.
+ * Thin client for the Carguito backend API.
  *
  * The backend serves aggregates from the DuckDB cube; the web app is purely a
  * display layer. When Supabase auth is enabled, attach the access token here.

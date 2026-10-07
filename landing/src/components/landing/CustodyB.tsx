@@ -4,17 +4,17 @@ const CELLS = [
     {
         icon: GraduationCap,
         title: "Aprende de ti",
-        body: "Renombra «POCK*SUPERLECLERC» a «Súper de la esquina» una vez: Tomin lo aplica a los parecidos y a cada estado de cuenta que subas después.",
+        body: "Renombra «POCK*SUPERLECLERC» a «Súper de la esquina» una vez: Carguito lo aplica a los parecidos y a cada estado de cuenta que subas después.",
     },
     {
         icon: ShieldCheck,
         title: "Ni una contraseña del banco",
-        body: "Tomin no se conecta a tu banco, así que no hay nada que darle. En la web, el PDF viaja, se lee en memoria y se desecha. Desde el celular (en pruebas) ni siquiera sale del aparato: viaja solo el texto, cifrado.",
+        body: "Carguito no se conecta a tu banco, así que no hay nada que darle. En la web, el PDF viaja, se lee en memoria y se desecha. Desde el celular (en pruebas) ni siquiera sale del aparato: viaja solo el texto, cifrado.",
     },
     {
         icon: Timer,
         title: "Un archivo basta",
-        body: "El primer estado de cuenta ya dibuja tus gráficas; cada uno que sumes afina la historia. Abajo dice qué bancos lee Tomin y qué tan bien.",
+        body: "El primer estado de cuenta ya dibuja tus gráficas; cada uno que sumes afina la historia. Abajo dice qué bancos lee Carguito y qué tan bien.",
     },
 ];
 

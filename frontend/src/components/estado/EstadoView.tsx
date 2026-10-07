@@ -148,7 +148,7 @@ export function EstadoView({
         return (
             <div className="space-y-4">
                 <EmptyState icon={CalendarDays} title="Todavía no hay nada que leer">
-                    Sube un estado de cuenta y Tomin lo lee aquí.
+                    Sube un estado de cuenta y Carguito lo lee aquí.
                 </EmptyState>
             </div>
         );
@@ -647,7 +647,7 @@ export function EstadoView({
                 <Card
                     layout="full"
                     title={flagged.length === 0 ? "Ningún cargo fuera de lo común" : flagged.length === 1 ? "1 cargo que no cuadra" : `${flagged.length} cargos que no cuadran`}
-                    foot="Tomin no adivina: tú dices si son tuyos."
+                    foot="Carguito no adivina: tú dices si son tuyos."
                 >
                     {flagged.length === 0 ? (
                         <p className="text-body-sm text-graphite">Ningún monto inusual, repetido o de un comercio nuevo en estos meses.</p>
@@ -792,7 +792,7 @@ function AskIncome({ onAsk }: { onAsk: () => void }) {
             foot={<Button size="sm" variant="secondary" onClick={onAsk}>Agregar mi ingreso</Button>}
             aside={
                 <p className="text-body-sm text-graphite">
-                    Tomin no adivina cuánto entra. Escríbelo una vez, o etiqueta tus depósitos de nómina en Plan, y estas
+                    Carguito no adivina cuánto entra. Escríbelo una vez, o etiqueta tus depósitos de nómina en Plan, y estas
                     lecturas se calculan con tus cargos de los últimos {SPAN_MONTHS} meses.
                 </p>
             }

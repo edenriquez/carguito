@@ -256,7 +256,7 @@ export function FijosView({ onGoToIngresos }: { onGoToIngresos?: () => void } = 
             {error && <BackendNotice what="Cargos Recurrentes" detail={error} />}
 
             {emptyDetection ? (
-                <EmptyState icon={Pin} title="Tomin aún no ve cobros que se repitan">
+                <EmptyState icon={Pin} title="Carguito aún no ve cobros que se repitan">
                     Hacen falta al menos tres cobros del mismo lugar con un ritmo
                     reconocible. Sube más estados de cuenta y aparecen solos.
                 </EmptyState>

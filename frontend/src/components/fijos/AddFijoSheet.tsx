@@ -151,7 +151,7 @@ export function AddFijoSheet({
             title={intent === "resto" ? "Sumar al resto" : "Añadir un cargo"}
             description={
                 intent === "resto"
-                    ? "Un gasto que haces seguido, sin día fijo. Tomin agrupa el comercio y su mes típico entra en la línea; no inventa una fecha."
+                    ? "Un gasto que haces seguido, sin día fijo. Carguito agrupa el comercio y su mes típico entra en la línea; no inventa una fecha."
                     : "Uno detectado se fija solo. Un comercio sin ritmo (Walmart) se fija por su mes típico, no por un día."
             }
             footer={

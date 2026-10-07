@@ -42,7 +42,7 @@ export default function Home() {
 }
 
 /** Once per session: where this visit came from. */
-const ARRIVED_KEY = "tomin.arrived";
+const ARRIVED_KEY = "carguito.arrived";
 
 function Root() {
     const [hasData, setHasData] = useState<boolean | null>(null);

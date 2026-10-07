@@ -6,8 +6,8 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-from tomin.domain.entities import Transaction
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction
+from carguito.domain.value_objects.enums import TxType
 
 DEV_USER = UUID("00000000-0000-0000-0000-000000000001")
 

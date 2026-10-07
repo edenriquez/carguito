@@ -29,7 +29,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-from tomin.domain.services.flags import detect_flags
+from carguito.domain.services.flags import detect_flags
 
 revision: str = "0012"
 down_revision: str | None = "0011"

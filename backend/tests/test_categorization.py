@@ -1,5 +1,5 @@
-from tomin.domain.entities import Category, Merchant
-from tomin.domain.services.categorization import CategorizationService, normalize
+from carguito.domain.entities import Category, Merchant
+from carguito.domain.services.categorization import CategorizationService, normalize
 
 
 def test_normalize_strips_accents_and_noise():
@@ -66,7 +66,7 @@ def test_payroll_wording_files_under_ingresos(app):
     cats = {c.name: c.id for c in container.categories.get_all()}
     assert "Ingresos" in cats
     classifier = container.categorizer if hasattr(container, "categorizer") else None
-    from tomin.domain.services.categorization import CategorizationService
+    from carguito.domain.services.categorization import CategorizationService
 
     svc = CategorizationService(container.categories.get_all(), container.merchants.get_all())
     nomina = svc.classify(
@@ -84,7 +84,7 @@ def test_outflow_wording_files_under_gasto(app):
     container = app.extensions["container"]
     cats = {c.name: c.id for c in container.categories.get_all()}
     assert "Gasto" in cats
-    from tomin.domain.services.categorization import CategorizationService
+    from carguito.domain.services.categorization import CategorizationService
 
     svc = CategorizationService(container.categories.get_all(), container.merchants.get_all())
     # A send to a person: the longer label beats Transferencias' "transferencia".
@@ -104,7 +104,7 @@ def test_outflow_wording_files_under_gasto(app):
 def test_a_default_added_later_reaches_an_existing_database(app):
     """The seed is per-name: a populated database gains "Ingresos" without
     losing anything the user changed in the categories it already had."""
-    from tomin.adapters.outbound.persistence.seed import seed_reference_data
+    from carguito.adapters.outbound.persistence.seed import seed_reference_data
 
     container = app.extensions["container"]
     before = {c.name: c for c in container.categories.get_all()}
@@ -122,8 +122,8 @@ def test_seed_grows_children_on_a_flat_taxonomy():
     """An older database that only has the roots gains the leaves, and the
     matcher vocabulary moves onto them. Extra labels the user added on a
     parent stay on the parent."""
-    from tomin.adapters.outbound.persistence.seed import seed_reference_data
-    from tomin.domain.entities import Category, Merchant
+    from carguito.adapters.outbound.persistence.seed import seed_reference_data
+    from carguito.domain.entities import Category, Merchant
 
     class _Cats:
         def __init__(self) -> None:

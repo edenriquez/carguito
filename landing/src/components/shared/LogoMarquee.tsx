@@ -9,7 +9,7 @@ const LOGOS = [
 ];
 
 /**
- * "Reconoce a quien te cobra": the merchants Tomin already names from a raw
+ * "Reconoce a quien te cobra": the merchants Carguito already names from a raw
  * statement line (every slug here is in frontend/src/lib/merchants.ts). Pure
  * CSS loop over a duplicated track; pauses on hover and under reduced motion.
  * Plain <img>: 16 tiny PNGs don't need the optimizer. `note` scopes the

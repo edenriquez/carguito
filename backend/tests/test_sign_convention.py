@@ -11,9 +11,9 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import text
 
-from tomin.adapters.outbound.cube import DuckDbCube
-from tomin.adapters.outbound.parsing import GenericBankParser, SatCfdiParser
-from tomin.adapters.outbound.parsing.base import (
+from carguito.adapters.outbound.cube import DuckDbCube
+from carguito.adapters.outbound.parsing import GenericBankParser, SatCfdiParser
+from carguito.adapters.outbound.parsing.base import (
     SIGN_NEGATIVE,
     SIGN_NONE,
     SIGN_POSITIVE,
@@ -21,11 +21,11 @@ from tomin.adapters.outbound.parsing.base import (
     infer_tx_type,
     parse_amount,
 )
-from tomin.adapters.outbound.persistence.db import Database
-from tomin.adapters.outbound.persistence.migrator import upgrade_to_head
-from tomin.application.dtos.extraction import ExtractedDocument
-from tomin.domain.entities import Transaction
-from tomin.domain.value_objects.enums import TxType
+from carguito.adapters.outbound.persistence.db import Database
+from carguito.adapters.outbound.persistence.migrator import upgrade_to_head
+from carguito.application.dtos.extraction import ExtractedDocument
+from carguito.domain.entities import Transaction
+from carguito.domain.value_objects.enums import TxType
 
 
 def _text_doc(lines: list[str]) -> ExtractedDocument:
@@ -197,7 +197,7 @@ def test_backfill_repairs_existing_negative_rows(tmp_path):
 
     from alembic import command
 
-    from tomin.adapters.outbound.persistence.migrator import build_config
+    from carguito.adapters.outbound.persistence.migrator import build_config
 
     config = build_config()
     with db.engine.begin() as conn:

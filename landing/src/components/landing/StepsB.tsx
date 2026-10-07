@@ -1,15 +1,15 @@
 const STEPS = [
     {
         title: "Subes el archivo",
-        body: "El PDF de tu banco o el XML del SAT, arrastrado a la pantalla. Si el PDF trae contraseña, Tomin te la pide una vez para abrirlo y no la guarda. La de tu banca en línea no se pide nunca.",
+        body: "El PDF de tu banco o el XML del SAT, arrastrado a la pantalla. Si el PDF trae contraseña, Carguito te la pide una vez para abrirlo y no la guarda. La de tu banca en línea no se pide nunca.",
     },
     {
-        title: "Tomin lo lee y lo desecha",
+        title: "Carguito lo lee y lo desecha",
         body: "Saca los movimientos, reconoce el banco, categoriza y desecha el archivo original. Solo quedan tus números.",
     },
     {
         title: "Ves tu dinero",
-        body: "Gráficas, categorías y cobros que se repiten desde el primer documento, y mejores con cada corrección tuya. Con dos cuentas, Tomin empareja los pagos que coinciden entre ellas; los que no, los marcas tú para que no cuenten dos veces.",
+        body: "Gráficas, categorías y cobros que se repiten desde el primer documento, y mejores con cada corrección tuya. Con dos cuentas, Carguito empareja los pagos que coinciden entre ellas; los que no, los marcas tú para que no cuenten dos veces.",
     },
 ];
 

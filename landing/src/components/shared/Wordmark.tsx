@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Flame } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { BankMark } from "./BankMark";
 
 export type Tone = "light" | "dark";
 
-/** Flame in Signal next to the wordmark — the only logo the product has today. */
+/** The smiling bank next to the wordmark — the product's logo. */
 export function Wordmark({ tone = "light", className }: { tone?: Tone; className?: string }) {
     return (
         <Link
@@ -15,8 +15,8 @@ export function Wordmark({ tone = "light", className }: { tone?: Tone; className
                 className
             )}
         >
-            <Flame size={16} className="text-signal" aria-hidden />
-            Tomin
+            <BankMark size={20} />
+            Carguito
         </Link>
     );
 }

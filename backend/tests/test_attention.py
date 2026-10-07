@@ -2,9 +2,9 @@ from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from tomin.domain.entities import Transaction
-from tomin.domain.services.attention import AttentionService
-from tomin.domain.value_objects.enums import TxType
+from carguito.domain.entities import Transaction
+from carguito.domain.services.attention import AttentionService
+from carguito.domain.value_objects.enums import TxType
 
 USER = uuid4()
 

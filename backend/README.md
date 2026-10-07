@@ -1,4 +1,4 @@
-# Tomin Backend
+# Carguito Backend
 
 Hexagonal (ports & adapters) Flask API.
 
@@ -12,7 +12,7 @@ movement they explain -> priced against the user's own history.
 ## Layout
 
 ```
-src/tomin/
+src/carguito/
   domain/         # pure business model: entities, value objects, services
   application/    # use cases + outbound port interfaces + DTOs
   adapters/
@@ -32,7 +32,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"          # add ".[ocr]" for image OCR support
 cp .env.example .env
-flask --app tomin.main run --debug   # or: python -m tomin.main
+flask --app carguito.main run --debug   # or: python -m carguito.main
 ```
 
 Defaults to a local SQLite DB and disabled auth so it runs offline. Point
@@ -42,7 +42,7 @@ Defaults to a local SQLite DB and disabled auth so it runs offline. Point
 ## The chat is optional, and provider-agnostic
 
 Workspace can answer questions about one saved lens in words. It is the only
-part of Tomin that is not deterministic, so it is deliberately the only thing
+part of Carguito that is not deterministic, so it is deliberately the only thing
 behind an optional integration:
 
 ```bash

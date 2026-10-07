@@ -1,4 +1,4 @@
-// Metro configuration for Tomin mobile.
+// Metro configuration for Carguito mobile.
 //
 // The only non-default piece is a resolver shim for Node built-ins.
 //

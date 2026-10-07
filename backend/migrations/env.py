@@ -1,10 +1,10 @@
 """Alembic environment.
 
 The database URL is *not* read from alembic.ini. It comes from
-``tomin.config.settings.get_settings().database_url`` so that the CLI, the test
+``carguito.config.settings.get_settings().database_url`` so that the CLI, the test
 suite and ``Container.bootstrap()`` can never disagree about which database
 they are pointing at. ``target_metadata`` is
-``tomin.adapters.outbound.persistence.models.Base.metadata`` — models.py is the
+``carguito.adapters.outbound.persistence.models.Base.metadata`` — models.py is the
 single source of truth for the schema.
 """
 
@@ -15,8 +15,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from tomin.adapters.outbound.persistence.models import Base
-from tomin.config.settings import get_settings
+from carguito.adapters.outbound.persistence.models import Base
+from carguito.config.settings import get_settings
 
 config = context.config
 

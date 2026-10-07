@@ -1,9 +1,9 @@
--- Tomin — Supabase-only DDL.
+-- Carguito — Supabase-only DDL.
 --
 -- ============================================================================
 -- EVERYTHING ELSE COMES FROM ALEMBIC.
 --
--- `backend/src/tomin/adapters/outbound/persistence/models.py` is the single
+-- `backend/src/carguito/adapters/outbound/persistence/models.py` is the single
 -- source of truth for the application schema, and `backend/migrations/` is how
 -- that schema reaches a database. Tables (categories, merchants, accounts,
 -- statements, transactions, goals), their indexes, their constraints and their

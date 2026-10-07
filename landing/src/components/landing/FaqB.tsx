@@ -9,15 +9,15 @@ import { appUrl } from "@/lib/site";
 const FAQ: ReadonlyArray<{ q: string; a: string; href?: { label: string; to: string } }> = [
     {
         q: "¿Cuánto cuesta?",
-        a: "Hoy nada: Tomin está en una fase temprana y no cobra. Si eso cambia, lo verás aquí y en el producto antes de que te afecte.",
+        a: "Hoy nada: Carguito está en una fase temprana y no cobra. Si eso cambia, lo verás aquí y en el producto antes de que te afecte.",
     },
     {
         q: "¿Qué pasa con mi PDF y con mis datos?",
-        a: "En la web, el PDF viaja, se lee en memoria y se desecha; no se guarda. Desde el celular, aún en pruebas, el archivo no sale del aparato: viaja solo el texto, cifrado. Lo que Tomin sí guarda son los movimientos que sacó (fecha, monto, descripción, categoría) para dibujar tus gráficas. Eso significa que el servidor puede ver tus movimientos: no es cifrado de extremo a extremo, y no lo vamos a llamar así.",
+        a: "En la web, el PDF viaja, se lee en memoria y se desecha; no se guarda. Desde el celular, aún en pruebas, el archivo no sale del aparato: viaja solo el texto, cifrado. Lo que Carguito sí guarda son los movimientos que sacó (fecha, monto, descripción, categoría) para dibujar tus gráficas. Eso significa que el servidor puede ver tus movimientos: no es cifrado de extremo a extremo, y no lo vamos a llamar así.",
         href: { label: "Leer la política de privacidad", to: "/privacidad" },
     },
     {
-        q: "¿Qué bancos lee Tomin?",
+        q: "¿Qué bancos lee Carguito?",
         a: "Banamex y Banco Azteca con un lector dedicado, escrito para su formato. Nu, BBVA, Santander, Banorte y HSBC pasan por el lector genérico. También el XML del SAT.",
         href: { label: "Ver la lista completa", to: "#bancos" },
     },
@@ -27,7 +27,7 @@ const FAQ: ReadonlyArray<{ q: string; a: string; href?: { label: string; to: str
     },
     {
         q: "¿Y si mi PDF tiene contraseña?",
-        a: "Tomin te la pide al subirlo: la del archivo, no la de tu banco. La usa una vez para abrir el PDF y la descarta con el resto de la petición; nunca la guarda ni la registra.",
+        a: "Carguito te la pide al subirlo: la del archivo, no la de tu banco. La usa una vez para abrir el PDF y la descarta con el resto de la petición; nunca la guarda ni la registra.",
     },
 ];
 

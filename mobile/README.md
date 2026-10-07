@@ -1,4 +1,4 @@
-# Tomin Mobile (Expo)
+# Carguito Mobile (Expo)
 
 React Native app (Expo Router). The phone is the custodian: raw bank statements
 and SAT XML are copied into the app's private storage and **never leave the

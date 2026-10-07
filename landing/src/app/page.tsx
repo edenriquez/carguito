@@ -34,7 +34,7 @@ export default function Landing() {
             <LogoMarquee
                 tone="dark"
                 label="Reconoce a quien te cobra"
-                note="A estos Tomin ya los nombra desde el renglón crudo del banco. Los que no conoce llegan como vienen en el estado de cuenta: los nombras una vez y Tomin los aprende."
+                note="A estos Carguito ya los nombra desde el renglón crudo del banco. Los que no conoce llegan como vienen en el estado de cuenta: los nombras una vez y Carguito los aprende."
             />
             <CustodyB />
             <BanksB />

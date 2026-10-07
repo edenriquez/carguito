@@ -8,8 +8,8 @@ wrong — two different sentences to a person.
 
 import io
 
-from tomin.adapters.outbound.extraction import PdfExtractor
-from tomin.application.ports.outbound import PdfPasswordError
+from carguito.adapters.outbound.extraction import PdfExtractor
+from carguito.application.ports.outbound import PdfPasswordError
 
 from .conftest import PDF_PASSWORD
 

@@ -13,7 +13,7 @@ export default function RootLayout() {
                     headerTitleStyle: { fontWeight: "700" },
                 }}
             >
-                <Stack.Screen name="index" options={{ title: "Tomin" }} />
+                <Stack.Screen name="index" options={{ title: "Carguito" }} />
                 <Stack.Screen name="upload" options={{ title: "Subir Estado de Cuenta" }} />
                 <Stack.Screen name="receipt" options={{ title: "Foto de un Ticket" }} />
                 <Stack.Screen name="transactions" options={{ title: "Transacciones" }} />
