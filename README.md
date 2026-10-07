@@ -1,4 +1,4 @@
-# Tomin
+# Carguito
 
 Financial visibility tool for the Mexican market.
 Aggregates messy bank data into clear insights, forecasts, and goals.
@@ -53,7 +53,7 @@ from the mobile app.
   Dedicated parsers: Banamex, Banco Azteca, SAT CFDI; every other bank
   (Nu, BBVA, Santander, ...) is detected by name but parsed by `generic_bank`.
 - Auth: Supabase (JWT verified server-side in
-  `backend/src/tomin/adapters/inbound/http/auth.py`); **disabled by default**
+  `backend/src/carguito/adapters/inbound/http/auth.py`); **disabled by default**
   (`AUTH_DISABLED=true` in `.env.example`) and the web frontend does not send a
   bearer token yet, so any deployment is single-user and unauthenticated.
 - Fijos (pinned recurring charges) and tagged incomes for Pronóstico live in the
@@ -76,7 +76,7 @@ from the mobile app.
 # Backend (Python 3.10+)
 cd backend && python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]" && cp .env.example .env
-python -m tomin.main               # http://localhost:8000
+python -m carguito.main               # http://localhost:8000
 
 # Web app
 cd frontend && npm install && npm run dev   # http://localhost:3000

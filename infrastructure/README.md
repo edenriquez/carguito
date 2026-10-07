@@ -1,3 +1,3 @@
-# Tomin Infrastructure
+# Carguito Infrastructure
 
 Terraform modules for easy deployment.
