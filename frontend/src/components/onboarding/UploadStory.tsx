@@ -1,4 +1,5 @@
 import { colors } from "@/design/tokens";
+import { BankMark } from "@/components/ui";
 
 /**
  * What happens to your file, as one looping scene.
@@ -138,14 +139,8 @@ export function UploadStory({ className }: { className?: string }) {
                         className="story-node-ring"
                         style={{ opacity: 0, transformBox: "fill-box", transformOrigin: "center" }}
                     />
-                    {/* the flame — Tomin doing the reading */}
-                    <path
-                        d="M 280 136 c 5 6 9 10 9 16 a 9 9 0 0 1 -18 0 c 0 -6 4 -10 9 -16 z"
-                        fill="none"
-                        stroke={colors.signal}
-                        strokeWidth="1.6"
-                        strokeLinejoin="round"
-                    />
+                    {/* the bank mark — Carguito doing the reading */}
+                    <BankMark size={28} x={266} y={136} />
 
                     {/* Data packets: what actually continues — not the file. */}
                     <g className="story-packet-a" style={{ opacity: 0 }}>

@@ -6,6 +6,10 @@ import { TimeWindowProvider } from "@/components/TimeWindowProvider";
 import { WorkspaceProvider } from "@/components/workspace/WorkspaceProvider";
 import { LecturaProvider } from "@/components/lectura/LecturaProvider";
 import { MovimientosSearchProvider } from "@/components/movimientos/MovimientosSearchProvider";
+import { adoptLegacyStorage } from "@/lib/legacyStorage";
+
+// Before any provider reads its key.
+adoptLegacyStorage();
 
 /**
  * App-wide state, mounted once above every route.

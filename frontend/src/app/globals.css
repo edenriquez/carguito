@@ -174,23 +174,23 @@
         }
 
         .bottom-sheet-panel.sheet-enter {
-            animation: tomin-sheet-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+            animation: carguito-sheet-in 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
         }
         .bottom-sheet-panel.sheet-leave {
-            animation: tomin-sheet-out 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
+            animation: carguito-sheet-out 240ms cubic-bezier(0.32, 0.72, 0, 1) both;
         }
         .bottom-sheet-scrim.sheet-enter {
-            animation: tomin-scrim-in 320ms linear both;
+            animation: carguito-scrim-in 320ms linear both;
         }
         .bottom-sheet-scrim.sheet-leave {
-            animation: tomin-scrim-out 240ms linear both;
+            animation: carguito-scrim-out 240ms linear both;
         }
 
         .movimientos-modal-scrim.modal-enter {
-            animation: tomin-scrim-in 200ms linear both;
+            animation: carguito-scrim-in 200ms linear both;
         }
         .movimientos-modal-scrim.modal-leave {
-            animation: tomin-scrim-out 180ms linear both;
+            animation: carguito-scrim-out 180ms linear both;
         }
         .movimientos-modal-panel.modal-enter {
             animation: movimientos-modal-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
@@ -200,10 +200,10 @@
         }
 
         .pagos-modal-scrim.modal-enter {
-            animation: tomin-scrim-in 220ms linear both;
+            animation: carguito-scrim-in 220ms linear both;
         }
         .pagos-modal-scrim.modal-leave {
-            animation: tomin-scrim-out 180ms linear both;
+            animation: carguito-scrim-out 180ms linear both;
         }
         .pagos-modal-panel.modal-enter {
             animation: pagos-modal-in 300ms cubic-bezier(0.32, 0.72, 0, 1) both;
@@ -246,7 +246,7 @@
         }
     }
 
-    @keyframes tomin-sheet-in {
+    @keyframes carguito-sheet-in {
         from {
             transform: translate3d(0, 100%, 0);
         }
@@ -255,7 +255,7 @@
         }
     }
 
-    @keyframes tomin-sheet-out {
+    @keyframes carguito-sheet-out {
         from {
             transform: translate3d(0, 0, 0);
         }
@@ -264,7 +264,7 @@
         }
     }
 
-    @keyframes tomin-scrim-in {
+    @keyframes carguito-scrim-in {
         from {
             opacity: 0;
         }
@@ -273,7 +273,7 @@
         }
     }
 
-    @keyframes tomin-scrim-out {
+    @keyframes carguito-scrim-out {
         from {
             opacity: 1;
         }
@@ -636,10 +636,10 @@
 
 @media (prefers-reduced-motion: no-preference) {
     .documentos-modal-scrim.modal-enter {
-        animation: tomin-scrim-in 220ms linear both;
+        animation: carguito-scrim-in 220ms linear both;
     }
     .documentos-modal-scrim.modal-leave {
-        animation: tomin-scrim-out 180ms linear both;
+        animation: carguito-scrim-out 180ms linear both;
     }
     .documentos-modal-panel.modal-enter {
         animation: pagos-modal-in 300ms cubic-bezier(0.32, 0.72, 0, 1) both;

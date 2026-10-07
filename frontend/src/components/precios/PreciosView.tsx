@@ -97,7 +97,7 @@ export function PreciosView({
                         />
                     }
                 >
-                    Sube la foto de un ticket del súper. Tomin la lee y se queda solo con
+                    Sube la foto de un ticket del súper. Carguito la lee y se queda solo con
                     el texto; la foto no se guarda. Verás el precio de cada producto.
                 </EmptyState>
                 <TicketQueue

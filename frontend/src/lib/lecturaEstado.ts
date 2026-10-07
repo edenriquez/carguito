@@ -36,7 +36,7 @@ export const TIER_LABELS: Record<Tier, string> = {
 
 /**
  * The default level of each category, by name. A name the table does not know
- * falls back to its root's level, and then to "sin clasificar" — Tomin does
+ * falls back to its root's level, and then to "sin clasificar" — Carguito does
  * not guess whether a category it has never seen is necessary.
  */
 const TIER_BY_NAME: Record<string, Tier> = {

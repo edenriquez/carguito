@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flame } from "lucide-react";
 import type { UploadResult } from "@/lib/api";
+import { BankMark } from "@/components/ui";
 import { track } from "@/lib/telemetry";
 import { StatementDropzone } from "@/components/StatementDropzone";
 import { ReviewStatement } from "@/components/onboarding/ReviewStatement";
@@ -22,7 +22,7 @@ import { UploadStory } from "@/components/onboarding/UploadStory";
  * - **It spoke in a voice the app does not have.** A 52px Instrument Serif
  *   hero, then an app that is Inter from edge to edge. The first screen should
  *   sound like the product it opens, so the type here is the app's type.
- * - **It explained the pipeline in three paragraphs.** "Tomin lo lee y lo
+ * - **It explained the pipeline in three paragraphs.** "Carguito lo lee y lo
  *   desecha" is a claim about custody, and a paragraph making that claim is
  *   just a paragraph. The scene below shows it: the file travels once, it
  *   dissolves at the processor, and only data continues to the charts. The
@@ -42,7 +42,7 @@ const BEATS = [
         body: "Sale de tu carpeta de descargas una sola vez.",
     },
     {
-        title: "Tomin lo lee y lo borra",
+        title: "Carguito lo lee y lo borra",
         body: "Saca los movimientos. El PDF no se guarda en ningún lado.",
     },
     {
@@ -73,15 +73,15 @@ export function Onboarding({
             <header className="mx-auto w-full max-w-page px-5 pt-6 sm:px-8 sm:pt-8">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2 text-body font-medium text-ink">
-                        <Flame size={16} className="text-signal" aria-hidden />
-                        Tomin
+                        <BankMark size={20} />
+                        Carguito
                     </div>
                     <a
                         href={LANDING_URL}
                         onClick={() => track("onboarding.to_landing")}
                         className="text-body-sm text-graphite underline decoration-mist underline-offset-4 transition-colors duration-100 hover:text-ink"
                     >
-                        ¿Qué es Tomin?
+                        ¿Qué es Carguito?
                     </a>
                 </div>
             </header>
@@ -149,7 +149,7 @@ export function Onboarding({
                                 ))}
                             </ol>
                             <p className="mx-auto mt-6 max-w-prose border-t border-mist pt-4 text-label text-graphite sm:text-center">
-                                Si tu PDF viene con contraseña, Tomin te la pide solo para
+                                Si tu PDF viene con contraseña, Carguito te la pide solo para
                                 abrirlo y no la guarda. Nunca es la contraseña de tu banca
                                 en línea.
                             </p>

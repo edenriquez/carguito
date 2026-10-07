@@ -27,7 +27,7 @@ import {
 } from "./window";
 
 export const SETTINGS_VERSION = 3;
-export const SETTINGS_STORAGE_KEY = "tomin.settings";
+export const SETTINGS_STORAGE_KEY = "carguito.settings";
 
 /** A panel's stored config. Values are primitives: anything richer would need
  *  a schema here, which is exactly the coupling `panels` exists to avoid. */

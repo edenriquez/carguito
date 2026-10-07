@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type AttentionItem } from "@/lib/api";
 import type { WindowBounds } from "@/lib/window";
 
-const DISMISSED_KEY = "tomin.attention.dismissed";
+const DISMISSED_KEY = "carguito.attention.dismissed";
 
 function readDismissed(): Set<string> {
     try {

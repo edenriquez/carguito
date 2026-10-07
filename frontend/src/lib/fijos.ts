@@ -15,7 +15,7 @@ import { matchMerchant, merchantBySlug } from "./merchants";
 import { parsePeriodKey } from "./metrics";
 
 export const FIJOS_VERSION = 1;
-export const FIJOS_STORAGE_KEY = "tomin.fijos";
+export const FIJOS_STORAGE_KEY = "carguito.fijos";
 
 export const HORIZONS = [6, 12] as const;
 export type Horizon = (typeof HORIZONS)[number];

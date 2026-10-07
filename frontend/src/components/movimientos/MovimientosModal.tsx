@@ -37,7 +37,7 @@ type Phase = "enter" | "open" | "leave";
  * Whether the criterios rail is folded. Per browser, not per session: someone
  * who works with it closed should not have to close it again tomorrow.
  */
-const RAIL_KEY = "tomin.criterios.abierto";
+const RAIL_KEY = "carguito.criterios.abierto";
 
 function storedRailOpen(): boolean {
     try {

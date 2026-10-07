@@ -13,7 +13,7 @@ import { restMonthlyFromTransactions, seriesKeyFromDescription, type Frequency }
 import { parsePeriodKey } from "./metrics";
 
 export const INGRESOS_VERSION = 1;
-export const INGRESOS_STORAGE_KEY = "tomin.ingresos";
+export const INGRESOS_STORAGE_KEY = "carguito.ingresos";
 
 export type IncomeKind = "nomina" | "extra";
 
