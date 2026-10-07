@@ -8,8 +8,8 @@ const STEPS = [
         body: "Saca los movimientos, reconoce el banco, categoriza y desecha el archivo original. Solo quedan tus números.",
     },
     {
-        title: "Ves tu dinero",
-        body: "Gráficas, categorías y cobros que se repiten desde el primer documento, y mejores con cada corrección tuya. Con dos cuentas, Carguito empareja los pagos que coinciden entre ellas; los que no, los marcas tú para que no cuenten dos veces.",
+        title: "Lees tu dinero",
+        body: "Primero la lectura: tu gasto contra la ENIGH, la canasta alimentaria y el INPC, y los cargos que no cuadran. Luego cada mes, cada categoría y los cobros que se repiten, mejores con cada corrección tuya. Con dos cuentas, Carguito empareja los pagos que coinciden entre ellas; los que no, los marcas tú para que no cuenten dos veces.",
     },
 ];
 

@@ -9,8 +9,9 @@ export const alt = SITE.title;
 /**
  * The share card. Soot ground, the wordmark, one headline with the highlight
  * pill — the same typographic move as the pages, in the same display face.
- * Instrument Serif is fetched at build from the Google Fonts CSS API,
- * subset to the characters the card uses; if that fetch fails the card
+ * Bricolage Grotesque is fetched at build from the Google Fonts CSS API as a
+ * static 500 instance at the 96 optical size (Satori cannot read a variable
+ * font), subset to the characters the card uses; if that fetch fails the card
  * falls back to Satori's system sans rather than failing the build.
  */
 /** SITE.headline split around the highlight. Word groups wrap as units in Satori, so the first half is two. */
@@ -19,7 +20,7 @@ const HEADLINE = { before: ["Tu estado de cuenta", "no lo lee nadie."], highligh
 async function loadDisplayFont(text: string): Promise<ArrayBuffer | null> {
     try {
         const css = await fetch(
-            `https://fonts.googleapis.com/css2?family=Instrument+Serif&text=${encodeURIComponent(text)}`,
+            `https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@96,500&text=${encodeURIComponent(text)}`,
             // An unrecognised UA gets TTF, which Satori can read; a browser UA gets woff2, which it cannot.
             { headers: { "User-Agent": "curl/8" } }
         ).then((r) => r.text());
@@ -34,7 +35,7 @@ async function loadDisplayFont(text: string): Promise<ArrayBuffer | null> {
 export default async function OpenGraphImage() {
     const text = `${SITE.name} ${HEADLINE.before.join(" ")} ${HEADLINE.highlight} ${HEADLINE.after} ${SITE.description}`;
     const data = await loadDisplayFont(text);
-    const fontFamily = data ? "Instrument Serif" : "sans-serif";
+    const fontFamily = data ? "Bricolage Grotesque" : "sans-serif";
     return new ImageResponse(
         (
             <div
@@ -48,7 +49,7 @@ export default async function OpenGraphImage() {
                     background: "#1c1917",
                     color: "#e7e5e4",
                     fontFamily,
-                    letterSpacing: 0,
+                    letterSpacing: "-0.02em",
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 30 }}>
@@ -84,7 +85,7 @@ export default async function OpenGraphImage() {
         ),
         {
             ...size,
-            fonts: data ? [{ name: "Instrument Serif", data, weight: 400, style: "normal" }] : undefined,
+            fonts: data ? [{ name: "Bricolage Grotesque", data, weight: 500, style: "normal" }] : undefined,
         }
     );
 }

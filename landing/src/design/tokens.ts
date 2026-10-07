@@ -2,7 +2,7 @@
 // run `npm run tokens:sync` in landing/ to refresh.
 
 /**
- * Tomin design tokens — the single source of truth.
+ * Carguito design tokens — the single source of truth.
  *
  * Imported by `tailwind.config.ts` (Tailwind 3.4 compiles TS configs natively)
  * and by the ApexCharts theme, so CSS and charts cannot drift apart.
@@ -57,6 +57,20 @@ export const colors = {
     /** The accent as *text*: 3.16:1 on Canvas, 4.51:1 on Wash. Only ever used
      *  on a Wash pill (the highlight span) or as a 1px outlined border. */
     edge: "#3398e1",
+    /**
+     * Signal with enough weight under it to carry white: Paper on this is
+     * 5.04:1, where Paper on Signal is 2.36:1 and fails at every size. Two
+     * steps down the tint ramp from Signal, same hue.
+     *
+     * For the one control on a page that has to lead it, and nothing else —
+     * a second filled blue would make both of them furniture. Everywhere else
+     * the accent is still Signal as a fill with an Ink label, or Edge as text.
+     */
+    signalDeep: "#1c73b5",
+    /** The same fill, pressed on. Hover on a flat control is a step of the
+     *  same colour, not a lift and not a filter: Paper on this is 6.68:1, so
+     *  the label gets *more* readable as the surface darkens. */
+    signalDeeper: "#17618f",
     /** The pill behind a highlight span. Carries Edge text at 4.51:1. */
     wash: "#c1e1f7",
 
@@ -175,6 +189,30 @@ export const boxShadow = {
     card: "rgba(0, 0, 0, 0.05) 0px 4px 16px 0px",
     chip: "rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px",
     float: "rgba(17, 12, 46, 0.12) 0px 12px 45px 0px",
+    /**
+     * A field that leads its header. Two layers and neither one visible on its
+     * own: a 1px contact shadow that seats the bar on the canvas, and a wide
+     * soft one that gives it height without drawing an edge.
+     *
+     * Large, diffuse and nearly transparent on purpose. The tight high-opacity
+     * shadow is what reads as an old button; spread is what reads as depth.
+     *
+     * The leading layer is a halo at zero spread and zero alpha — invisible,
+     * and there only so this value and {@link fieldFocus} have the same number
+     * of shadows. CSS cannot interpolate `box-shadow` between two values with
+     * different layer counts: it snaps. With the layer present at nothing, the
+     * focus halo grows out of nothing instead.
+     */
+    field:
+        "0 0 0 0 rgba(59, 166, 241, 0), 0 1px 2px rgba(12, 10, 9, 0.04), 0 10px 28px -12px rgba(12, 10, 9, 0.12)",
+    /**
+     * The same field with focus. Both depth layers grow, and the halo comes up
+     * to 4px of the accent at 16% — the job a hard focus ring does, with far
+     * less noise. Same three layers in the same order as {@link field}, which
+     * is what lets it animate rather than snap.
+     */
+    fieldFocus:
+        "0 0 0 4px rgba(59, 166, 241, 0.16), 0 2px 4px rgba(12, 10, 9, 0.05), 0 18px 44px -14px rgba(12, 10, 9, 0.18)",
 } as const;
 
 /**
