@@ -8,7 +8,7 @@ from .extraction import (
     TemplateClassifier,
 )
 from .metrics import MetricEngine, MetricResolver
-from .receipts import ReceiptReader
+from .receipts import ReceiptImageOcr, ReceiptReader, UnreadableImageError
 from .references import (
     CompositePriceReference,
     NullPriceReference,
@@ -53,7 +53,9 @@ __all__ = [
     "DuplicateTagError",
     "GoalRepository",
     "MerchantRepository",
+    "ReceiptImageOcr",
     "ReceiptReader",
+    "UnreadableImageError",
     "ReceiptRepository",
     "UserAliasRepository",
     "UserLabelRepository",

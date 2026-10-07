@@ -4,7 +4,13 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { mxn } from "@/lib/format";
 
-export type CategoryChip = { name: string; color: string; amount: number };
+export type CategoryChip = {
+    name: string;
+    color: string;
+    amount: number;
+    /** Another category has the focus, so this swatch steps back. */
+    faded?: boolean;
+};
 
 /**
  * The chips that say which slice of the period the list below is showing.
@@ -23,6 +29,7 @@ export function CategoryFilterBar({
     month,
     monthLabel,
     onClearMonth,
+    onHover,
 }: {
     chips: CategoryChip[];
     /** Category names in the set, empty for "todas". */
@@ -31,6 +38,9 @@ export function CategoryFilterBar({
     month: string | null;
     monthLabel?: string;
     onClearMonth: () => void;
+    /** A chip under the pointer (or keyboard focus) lights its layer in
+     *  the chart; null when it leaves. */
+    onHover?: (name: string | null) => void;
 }) {
     return (
         <div className="flex flex-wrap items-center gap-1.5">
@@ -57,6 +67,10 @@ export function CategoryFilterBar({
                         aria-pressed={active}
                         title={`${c.name} · ${mxn(c.amount)}`}
                         onClick={() => onPick(c.name)}
+                        onMouseEnter={onHover && (() => onHover(c.name))}
+                        onMouseLeave={onHover && (() => onHover(null))}
+                        onFocus={onHover && (() => onHover(c.name))}
+                        onBlur={onHover && (() => onHover(null))}
                         className={cn(
                             CHIP,
                             "gap-1.5",
@@ -68,7 +82,7 @@ export function CategoryFilterBar({
                         <span
                             aria-hidden
                             className="h-2 w-2 shrink-0 rounded-full"
-                            style={{ background: c.color }}
+                            style={{ background: c.color, opacity: c.faded ? 0.3 : undefined }}
                         />
                         {c.name}
                     </button>

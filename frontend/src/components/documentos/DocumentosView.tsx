@@ -457,8 +457,8 @@ function TransfersNote({ banks }: { banks: number }) {
 
 /**
  * Where tickets come from, said in the one place that lists what Tomin has
- * read. The Precios tab appears only once there is a ticket; without this
- * line a web-only user would never learn that the phone app is the way in.
+ * read: the Precios face, from a photo the phone reads itself or one the
+ * browser uploads for the backend to read. Either way only text is stored.
  */
 function TicketsNote() {
     const { dataVersion } = useAppData();
@@ -469,20 +469,26 @@ function TicketsNote() {
             <ReceiptText size={14} aria-hidden className="text-ash" />
             {count === 0 ? (
                 <>
-                    Los tickets del súper entran desde la app de Tomin en el celular
-                    (la foto se queda ahí; solo viaja el texto). Aquí todavía no hay
-                    ninguno.
-                </>
-            ) : (
-                <>
-                    {count} ticket{count === 1 ? "" : "s"} leído{count === 1 ? "" : "s"} desde
-                    tu celular.
+                    Los tickets del súper se suben en Precios, desde aquí o desde la app
+                    en el celular. Desde el celular la foto no sale del teléfono; desde
+                    aquí se sube, se lee y se descarta. Todavía no hay ninguno.
                     <Link
-                        href="/?cara=precios"
+                        href="/"
                         onClick={() => track("nav.view", { to: "/precios", source: "documentos" })}
                         className="underline decoration-mist underline-offset-4 transition-colors duration-100 hover:text-ink"
                     >
-                        Ver precios
+                        Ir a Movimientos
+                    </Link>
+                </>
+            ) : (
+                <>
+                    {count} ticket{count === 1 ? "" : "s"} leído{count === 1 ? "" : "s"}.
+                    <Link
+                        href="/"
+                        onClick={() => track("nav.view", { to: "/precios", source: "documentos" })}
+                        className="underline decoration-mist underline-offset-4 transition-colors duration-100 hover:text-ink"
+                    >
+                        Ver en Movimientos › Precios
                     </Link>
                 </>
             )}

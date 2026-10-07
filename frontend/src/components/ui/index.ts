@@ -11,3 +11,4 @@ export { Sheet } from "./Sheet";
 export { BottomSheet } from "./BottomSheet";
 export { Switch } from "./Switch";
 export { ToastProvider, useToast, type ToastTone } from "./Toast";
+export { FaceTabs, type FaceTab } from "./FaceTabs";

@@ -313,6 +313,8 @@ def receipt_json(r: Receipt) -> dict:
         "match_source": r.match_source,
         "store": r.store,
         "purchased_at": _iso(r.purchased_at),
+        # "14:32", as printed. Display only; nothing is computed from it.
+        "purchased_time": r.purchased_time.strftime("%H:%M") if r.purchased_time else None,
         "total": _money(r.total),
         "currency": r.currency,
         # Provenance: which OCR engine read the photo and which reader
@@ -335,6 +337,9 @@ def price_point_json(point: PricePoint, basis: str) -> dict:
         "receipt_id": str(point.receipt_id),
         "transaction_id": str(point.transaction_id) if point.transaction_id else None,
         "purchased_at": _iso(point.purchased_at),
+        # The photo's own timestamp: the fallback date for a ticket whose
+        # print had none the reader could use.
+        "captured_at": _iso(point.captured_at),
         "store": point.store,
         "description": point.description,
         "amount": _num(point.amount),

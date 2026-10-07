@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { dayLabel, mxn2 } from "@/lib/format";
+import { mxn2 } from "@/lib/format";
 import {
     basisLabel,
     pricesApi,
@@ -13,6 +13,7 @@ import {
 } from "@/lib/prices";
 import { Skeleton } from "@/components/ui";
 import { track } from "@/lib/telemetry";
+import { PriceTracker, pointDateLabel } from "./PriceTracker";
 
 /**
  * The price book: one row per product, every purchase of it behind the row.
@@ -27,14 +28,16 @@ import { track } from "@/lib/telemetry";
  * Same rows as the month and category lists: chevron, name, meta, figure.
  * The name is the reference term when there is one, because that is the word
  * the user chose; what the printer had room for follows it in grey.
+ *
+ * An open row is the price tracker: the line of what this product cost on
+ * each date (`PriceTracker`), then every purchase behind it as a list, which
+ * is the same data as a table for anyone the line does not serve.
  */
 export function ProductosList({
-    query,
     terms,
     dataVersion,
     onVerTicket,
 }: {
-    query: string;
     terms: Record<string, ReferenceTerm>;
     dataVersion: number;
     onVerTicket: (receiptId: string) => void;
@@ -49,7 +52,7 @@ export function ProductosList({
     useEffect(() => {
         let stale = false;
         pricesApi
-            .book(query.trim() || undefined)
+            .book()
             .then((res) => {
                 if (stale) return;
                 setBook(res.items);
@@ -59,7 +62,7 @@ export function ProductosList({
         return () => {
             stale = true;
         };
-    }, [query, dataVersion]);
+    }, [dataVersion]);
 
     useEffect(() => {
         if (!openKey || detail[openKey]) return;
@@ -116,7 +119,7 @@ export function ProductosList({
                 </div>
             ) : book.length === 0 ? (
                 <p className="px-5 py-6 text-body text-graphite sm:px-6">
-                    {query.trim() ? "Ningún producto coincide." : "Ningún producto leído todavía."}
+                    Ningún producto leído todavía.
                 </p>
             ) : (
                 <ul className="divide-y divide-mist">
@@ -165,6 +168,18 @@ export function ProductosList({
 
                                 {open && (
                                     <>
+                                        {points ? (
+                                            <PriceTracker
+                                                product={p}
+                                                points={points}
+                                                className="border-b border-muted/50 py-3 pl-7 pr-5 sm:pl-12 sm:pr-6"
+                                            />
+                                        ) : (
+                                            <div className="border-b border-muted/50 py-3 pl-7 pr-5 sm:pl-12 sm:pr-6">
+                                                <Skeleton className="mb-2 h-3 w-2/3" />
+                                                <Skeleton className="h-[180px]" />
+                                            </div>
+                                        )}
                                         <Purchases
                                             product={p}
                                             points={points}
@@ -254,7 +269,7 @@ function Purchases({
                 >
                     <span className="flex min-w-0 items-baseline gap-1.5">
                         <span className="truncate text-body-sm text-graphite">
-                            {when(pt)} · {pt.store ?? "tienda ilegible"}
+                            {pointDateLabel(pt)} · {pt.store ?? "tienda ilegible"}
                         </span>
                         <span className="tabular whitespace-nowrap text-label text-ash">
                             {pt.size !== null && pt.size_unit && `· ${pt.size} ${pt.size_unit} `}
@@ -269,10 +284,4 @@ function Purchases({
             ))}
         </div>
     );
-}
-
-function when(pt: PricePoint): string {
-    if (!pt.purchased_at) return "fecha ilegible";
-    const d = new Date(pt.purchased_at);
-    return Number.isNaN(d.getTime()) ? pt.purchased_at : dayLabel(d);
 }

@@ -68,7 +68,7 @@ export function rhythmCopy(
     }
 
     // Day of month: the fact that matters for a monthly or yearly rhythm.
-    if (frequency === "monthly" || frequency === "bimonthly" || frequency === "yearly") {
+    if (frequency === "monthly" || frequency === "bimonthly" || frequency === "semiannual" || frequency === "yearly") {
         const days = dates.map((d) => d.getDate());
         const typical = median(days);
         const near = days.filter((d) => Math.abs(d - typical) <= 3).length / days.length;

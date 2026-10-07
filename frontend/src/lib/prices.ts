@@ -15,7 +15,12 @@ import { request } from "./api";
 export type PricePoint = {
     receipt_id: string;
     transaction_id: string | null;
+    /** The date printed on the ticket, when the reader could find one. */
     purchased_at: string | null;
+    /** When the photo was taken. The fallback date when `purchased_at` is
+     *  null: a ticket can be photographed days after the trip, so anything
+     *  drawn on it says "≈". ISO datetime without offset. */
+    captured_at: string | null;
     store: string | null;
     /** As printed on that ticket, which is not always how it reads today. */
     description: string;
@@ -76,6 +81,8 @@ export type Receipt = {
     match_source: string;
     store: string | null;
     purchased_at: string | null;
+    /** "14:32", the clock time printed next to the date, or null. */
+    purchased_time: string | null;
     total: number | null;
     currency: string;
     /** Which OCR engine read the photo, and which reader structured the lines. */

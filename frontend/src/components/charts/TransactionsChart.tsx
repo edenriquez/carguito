@@ -56,6 +56,21 @@ export function dateToMs(isoDate: string): number {
 
 const toMs = dateToMs;
 
+/** Past this many categories the smallest go to one Ash series — a legend
+ *  of more hues than that is read by nobody. */
+const MAX_CATEGORIES = 8;
+
+/** The middle cargo: what "a normal charge" is in this window. */
+export function medianAmount(transactions: Transaction[]): number | null {
+    const amounts = transactions
+        .filter((t) => t.type === "expense")
+        .map((t) => Math.abs(t.amount))
+        .sort((a, b) => a - b);
+    if (amounts.length === 0) return null;
+    const mid = Math.floor(amounts.length / 2);
+    return amounts.length % 2 ? amounts[mid]! : (amounts[mid - 1]! + amounts[mid]!) / 2;
+}
+
 /** A dragged x-range, in the same local-midnight ms as the marks. */
 export type ChartRange = { start: number; end: number };
 
@@ -84,6 +99,8 @@ export function TransactionsChart({
     onRangeSelect,
     zoomRange = null,
     height = 320,
+    focusCategoryId = null,
+    ariaLabel,
 }: {
     /** Already window+search filtered, `tx_date DESC` from the API. */
     transactions: Transaction[];
@@ -110,10 +127,14 @@ export function TransactionsChart({
      *  selection would cover the whole plot and say nothing. */
     zoomRange?: ChartRange | null;
     height?: number;
+    /** Categoria mode: the category the reading is about; the others fade. */
+    focusCategoryId?: string | null;
+    /** The title's sentence, for screen readers. */
+    ariaLabel?: string;
 }) {
     const byCategory = colorMode === "categoria" && categories !== null;
 
-    const { series, pointIds, idToPoint, seriesColors, stackedBuckets } = useMemo(() => {
+    const { series, pointIds, idToPoint, seriesColors, seriesOpacity, stackedBuckets, firstBucket } = useMemo(() => {
         const pool = showIncome
             ? transactions
             : transactions.filter((t) => t.type === "expense");
@@ -124,7 +145,13 @@ export function TransactionsChart({
             let groups: Transaction[][];
             let names: string[];
             let seriesColors: string[];
+            let seriesOpacity: number[] | null = null;
             if (byCategory) {
+                // A category is its taxonomy color, as in every other
+                // view. Series follow each category's total over the whole
+                // window; past MAX_CATEGORIES the smallest share one Ash
+                // series. The focused category keeps its own color and the
+                // rest fade — Signal is never a category.
                 const keys = new Map<string | null, Transaction[]>();
                 for (const t of pool) {
                     const k = t.category_id ?? null;
@@ -132,13 +159,34 @@ export function TransactionsChart({
                     if (g) g.push(t);
                     else keys.set(k, [t]);
                 }
-                // Biggest group first so the legend leads with what dominates.
-                const entries = Array.from(keys.entries()).sort(
-                    (a, b) => b[1].length - a[1].length
+                const total = (txns: Transaction[]) =>
+                    txns.reduce((s, t) => s + Math.abs(t.amount), 0);
+                const ranked = Array.from(keys.entries()).sort(
+                    (a, b) => total(b[1]) - total(a[1])
                 );
-                groups = entries.map(([, txns]) => txns);
-                names = entries.map(([k]) => categoryName(categories, k));
-                seriesColors = entries.map(([k]) => categoryColor(categories, k));
+                let named = ranked;
+                let rest: Transaction[] = [];
+                if (ranked.length > MAX_CATEGORIES) {
+                    // The focus is never folded away, however small it is.
+                    const isFocus = ([k]: (typeof ranked)[number]) =>
+                        focusCategoryId !== null && k === focusCategoryId;
+                    const head = ranked.slice(0, MAX_CATEGORIES - 1);
+                    const focus = ranked.slice(MAX_CATEGORIES - 1).find(isFocus);
+                    named = focus ? [...head, focus] : head;
+                    rest = ranked.filter((e) => !named.includes(e)).flatMap(([, txns]) => txns);
+                }
+                groups = named.map(([, txns]) => txns);
+                names = named.map(([k]) => categoryName(categories, k));
+                seriesColors = named.map(([k]) => categoryColor(categories, k));
+                if (rest.length > 0) {
+                    groups.push(rest);
+                    names.push("Otras categorías");
+                    seriesColors.push(colors.ash);
+                }
+                const lit = named.some(([k]) => focusCategoryId !== null && k === focusCategoryId);
+                seriesOpacity = lit
+                    ? [...named.map(([k]) => (k === focusCategoryId ? 1 : 0.3)), ...(rest.length ? [0.3] : [])]
+                    : null;
             } else {
                 groups = showIncome
                     ? [
@@ -161,7 +209,9 @@ export function TransactionsChart({
                     )
                 ),
                 seriesColors,
+                seriesOpacity,
                 stackedBuckets: [] as string[],
+                firstBucket: null as string | null,
             };
         }
 
@@ -210,6 +260,8 @@ export function TransactionsChart({
                 pointIds: [] as string[][],
                 idToPoint: new Map<string, [number, number]>(),
                 seriesColors: [chartTokens.neutral[1], chartTokens.neutral[4], colors.signal],
+                seriesOpacity: null,
+                firstBucket: buckets[0] ?? null,
                 stackedBuckets: buckets.map((b) => {
                     const date = toMs(grain === "day" ? b : `${b}-01`);
                     return grain === "day"
@@ -221,7 +273,14 @@ export function TransactionsChart({
 
         // Unreachable: both modes return above. Keeps TS's control-flow happy.
         throw new Error(`unknown chart mode: ${mode}`);
-    }, [transactions, showIncome, mode, byCategory, categories, grain]);
+    }, [transactions, showIncome, mode, byCategory, categories, grain, focusCategoryId]);
+
+    // The typical cargo, drawn as a rule so an outlier reads as "far above
+    // normal", not just "high".
+    const median = useMemo(
+        () => (mode === "scatter" ? medianAmount(transactions) : null),
+        [mode, transactions]
+    );
 
     // Both handlers live in refs so the options memo does not rebuild every
     // time the parent re-renders (parents pass inline functions). This is
@@ -249,7 +308,7 @@ export function TransactionsChart({
     // declaration order — so the effect re-applies onto the fresh chart.
     useEffect(() => {
         lastExeced.current = null;
-    }, [mode, showIncome, colorMode, zoomRange]);
+    }, [mode, showIncome, colorMode, zoomRange, focusCategoryId]);
 
     // Row → mark. Data or mode changes rebuild the chart, so re-run then too.
     useEffect(() => {
@@ -417,6 +476,22 @@ export function TransactionsChart({
                 },
                 // Nothing to select in an aggregate.
                 states: { active: { filter: { type: "none", value: 0 } } },
+                // The net is a running sum that starts at zero on the
+                // window's first bucket; the zero is drawn and says so.
+                ...(firstBucket && {
+                    annotations: {
+                        yaxis: [
+                            ruleAnnotation(
+                                0,
+                                `neto acumulado desde ${
+                                    grain === "day"
+                                        ? dayLabel(new Date(toMs(firstBucket)))
+                                        : monthLabel(new Date(toMs(`${firstBucket}-01`)), true)
+                                }`
+                            ),
+                        ],
+                    },
+                }),
             };
         }
 
@@ -424,7 +499,15 @@ export function TransactionsChart({
             return {
                 ...base,
                 colors: seriesColors,
-                markers: { size: 4, strokeWidth: 0, hover: { size: 6 } },
+                markers: {
+                    size: 4,
+                    strokeWidth: 0,
+                    hover: { size: 6 },
+                    ...(seriesOpacity && { fillOpacity: seriesOpacity }),
+                },
+                ...(median !== null && {
+                    annotations: { yaxis: [ruleAnnotation(median, `mediana ${mxn(median)}`)] },
+                }),
                 xaxis: {
                     type: "datetime",
                     // The dragged range, applied as the axis domain. A hair of
@@ -470,7 +553,7 @@ export function TransactionsChart({
 
         // Unreachable: both modes return above.
         throw new Error(`unknown chart mode: ${mode}`);
-    }, [mode, grain, showIncome, byCategory, categories, transactions, seriesColors, stackedBuckets, brushable, zoomRange]);
+    }, [mode, grain, showIncome, byCategory, categories, transactions, seriesColors, stackedBuckets, brushable, zoomRange, median, firstBucket, seriesOpacity]);
 
     const type = mode === "scatter" ? "scatter" : "line";
     return (
@@ -481,13 +564,33 @@ export function TransactionsChart({
         <ApexChart
             // showIncome and colorMode are in the key too: both change the
             // series structure or color strategy, both remount-worthy.
-            key={`${mode}-${showIncome}-${colorMode}-${zoomRange?.start ?? "all"}-${zoomRange?.end ?? "all"}`}
+            // Categoria mode regroups around its focus: also a new chart.
+            key={`${mode}-${showIncome}-${colorMode}-${zoomRange?.start ?? "all"}-${zoomRange?.end ?? "all"}-${focusCategoryId ?? ""}`}
             type={type}
             series={series}
             options={options}
             height={height}
+            ariaLabel={ariaLabel}
         />
     );
+}
+
+/** A dashed reference rule with its value written on it, in Graphite —
+ *  the reference is stone, never Signal. */
+function ruleAnnotation(y: number, text: string) {
+    return {
+        y,
+        strokeDashArray: 4,
+        borderColor: colors.muted,
+        label: {
+            text,
+            position: "right",
+            textAnchor: "end",
+            offsetY: -4,
+            borderWidth: 0,
+            style: { background: "transparent", color: colors.graphite, fontSize: "11px" },
+        },
+    };
 }
 
 function escapeHtml(s: string): string {

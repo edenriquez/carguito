@@ -31,7 +31,7 @@ import { LecturaDock } from "@/components/lectura/LecturaDock";
 import { useLectura } from "@/components/lectura/LecturaProvider";
 import { draftFromClauses, MAX_LECTURA_CLAUSES } from "@/lib/lectura";
 import { AddIngresoSheet } from "./AddIngresoSheet";
-import { ContrastChart, CONTRAST_COLORS } from "./ContrastChart";
+import { ContrastChart, CONTRAST_COLORS, contrastFinding } from "./ContrastChart";
 import { useIngresos } from "./useIngresos";
 
 const MONTHS_BACK = 12;
@@ -41,6 +41,7 @@ const FREQUENCY_LABELS: Record<RecurringItem["frequency"], string> = {
     biweekly: "Quincenal",
     monthly: "Mensual",
     bimonthly: "Bimestral",
+    semiannual: "Semestral",
     yearly: "Anual",
 };
 
@@ -178,6 +179,9 @@ export function PronosticoView({ onGoToFijos }: { onGoToFijos?: () => void } = {
         [fijosTl, nominaTl, extraTl]
     );
 
+    // The chart's title states its finding; the metric's name moves under it.
+    const contrastTitle = contrastFinding(contrast)?.title;
+
     const income = nominaTl.totals.projected + extraTl.totals.projected;
     const need = fijosTl.totals.projected;
     const nominaNeed = nominaTl.totals.projected;
@@ -248,7 +252,10 @@ export function PronosticoView({ onGoToFijos }: { onGoToFijos?: () => void } = {
                         onGoToFijos={onGoToFijos}
                     />
 
-                    <ChartCard title="Ingresos contra fijos">
+                    <ChartCard
+                        title={contrastTitle ?? "Ingresos contra fijos"}
+                        subtitle={contrastTitle ? "Ingresos contra fijos" : undefined}
+                    >
                         {loading ? (
                             <Skeleton className="h-[300px]" />
                         ) : (

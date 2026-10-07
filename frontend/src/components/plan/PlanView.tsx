@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { ArrowDownToLine, ArrowUpFromLine, HardDrive } from "lucide-react";
-import { cn } from "@/lib/cn";
+import { FaceTabs } from "@/components/ui";
 import { track } from "@/lib/telemetry";
 import { useFace } from "@/lib/useFace";
 import { FijosView } from "@/components/fijos/FijosView";
@@ -55,36 +55,27 @@ export function PlanView() {
     return (
         <div className="space-y-4 sm:space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <div
-                    role="tablist"
-                    aria-label="Cara del plan"
-                    className="inline-flex rounded-control border border-mist bg-paper p-0.5 shadow-card"
-                >
-                    {FACES.map((f) => {
-                        const selected = f === face;
-                        const Icon = f === "fijos" ? ArrowUpFromLine : ArrowDownToLine;
-                        return (
-                            <button
-                                key={f}
-                                type="button"
-                                role="tab"
-                                aria-selected={selected}
-                                onClick={() => pick(f)}
-                                title={FACE_LABELS[f].hint}
-                                className={cn(
-                                    "inline-flex h-9 items-center gap-2 rounded-control px-4 text-body",
-                                    "transition-colors duration-100",
-                                    selected
-                                        ? "bg-fog font-medium text-ink ring-1 ring-inset ring-mist"
-                                        : "text-graphite hover:text-ink"
+                <FaceTabs
+                    tabs={FACES.map((f) => ({
+                        key: f,
+                        title: FACE_LABELS[f].hint,
+                        label: (
+                            <>
+                                {f === "fijos" ? (
+                                    <ArrowUpFromLine size={15} aria-hidden />
+                                ) : (
+                                    <ArrowDownToLine size={15} aria-hidden />
                                 )}
-                            >
-                                <Icon size={15} aria-hidden />
                                 {FACE_LABELS[f].label}
-                            </button>
-                        );
-                    })}
-                </div>
+                            </>
+                        ),
+                    }))}
+                    value={face}
+                    onChange={pick}
+                    label="Cara del plan"
+                    tone="light"
+                    size="md"
+                />
 
                 {/* Said once, quietly: the pins and the income labels are the
                     user's work, and today they live in this browser only. A

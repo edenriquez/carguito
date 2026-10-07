@@ -20,7 +20,7 @@ import { parsePeriodKey } from "@/lib/metrics";
 import { track } from "@/lib/telemetry";
 import { useAppData } from "@/components/AppChrome";
 import { ChartCard } from "@/components/ChartCard";
-import { LoadTimelineChart } from "@/components/recurrentes/LoadTimelineChart";
+import { LoadTimelineChart, timelineHeadline } from "@/components/recurrentes/LoadTimelineChart";
 import {
     buildTimeline,
     isStale,
@@ -46,6 +46,7 @@ const FREQUENCY_LABELS: Record<RecurringItem["frequency"], string> = {
     biweekly: "Quincenal",
     monthly: "Mensual",
     bimonthly: "Bimestral",
+    semiannual: "Semestral",
     yearly: "Anual",
 };
 
@@ -276,7 +277,10 @@ export function FijosView({ onGoToIngresos }: { onGoToIngresos?: () => void } = 
                         onGoToIngresos={onGoToIngresos}
                     />
 
-                    <ChartCard title="Mes a mes, y lo que viene">
+                    <ChartCard
+                        title={(!loading && timelineHeadline(timeline)) || "Mes a mes, y lo que viene"}
+                        subtitle={!loading && timelineHeadline(timeline) ? "Mes a mes, y lo que viene" : undefined}
+                    >
                         {loading ? (
                             <Skeleton className="h-[300px]" />
                         ) : (
@@ -444,10 +448,10 @@ function Headline({
                     <div className="flex flex-wrap items-center justify-end gap-x-3">
                         {suggestedCount > 0 && (
                             <Link
-                                href="/?cara=recurrentes"
+                                href="/"
                                 className="text-body-sm text-graphite underline decoration-mist underline-offset-4 hover:text-ink"
                             >
-                                Confirmar en Cargos recurrentes →
+                                Confirmar en Movimientos › Cargos recurrentes →
                             </Link>
                         )}
                         {onGoToIngresos && !loading && (

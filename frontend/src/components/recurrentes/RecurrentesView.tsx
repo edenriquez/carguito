@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { List, Plus, Repeat, Trash2, X } from "lucide-react";
 import type { RecurringItem } from "@/lib/api";
 import { categoryName, useCategories } from "@/lib/categories";
@@ -15,16 +15,14 @@ import {
 import { categoryLens } from "@/lib/movimientosQuery";
 import {
     EMPTY_QUERY,
-    periodChipLabel,
     type MovimientosQuery,
 } from "@/lib/movimientosQuery";
 import { track } from "@/lib/telemetry";
-import { WINDOW_LABELS } from "@/lib/window";
 import { useAppData } from "@/components/AppChrome";
 import { AddFijoSheet } from "@/components/fijos/AddFijoSheet";
 import { useMovimientosSearch } from "@/components/movimientos/MovimientosSearchProvider";
 import { BackendNotice, Button, EmptyState, Skeleton } from "@/components/ui";
-import { LoadTimelineChart } from "./LoadTimelineChart";
+import { LoadTimelineChart, timelineHeadline } from "./LoadTimelineChart";
 import { buildTimeline } from "./projection";
 import { buildSeriesColors, sortByWeight } from "./seriesColors";
 import { typicalDayOfMonth } from "./rhythm";
@@ -35,6 +33,7 @@ const FREQUENCY_LABELS: Record<RecurringItem["frequency"], string> = {
     biweekly: "Quincenal",
     monthly: "Mensual",
     bimonthly: "Bimestral",
+    semiannual: "Semestral",
     yearly: "Anual",
 };
 
@@ -57,27 +56,14 @@ const CHART_MONTHS = 6;
  * shows in both.
  */
 export function RecurrentesView({
-    tabs,
-    onLoadingChange,
 }: {
-    tabs?: ReactNode;
-    /** Told to the host each time this face starts or stops waiting on data:
-     *  it holds the page's height while a face it has never shown loads. */
-    onLoadingChange?: (loading: boolean) => void;
 } = {}) {
-    const { bounds, dataVersion, window: timeWindow } = useAppData();
+    const { bounds, dataVersion } = useAppData();
     const categories = useCategories();
     const { query, openModal } = useMovimientosSearch();
-    const { detected, manuals, taughtRest, fijos, banks, loading, error } =
+    const { detected, manuals, taughtRest, fijos, loading, error } =
         useRecurringSeries(dataVersion);
     const [adding, setAdding] = useState(false);
-
-    const waiting = loading && !error;
-    const report = useRef(onLoadingChange);
-    report.current = onLoadingChange;
-    useEffect(() => {
-        report.current?.(waiting);
-    }, [waiting]);
 
     // A manual has no detection behind it: unpinning drops it, so its only
     // honest verb is "Eliminar".
@@ -143,17 +129,12 @@ export function RecurrentesView({
         () => buildSeriesColors([...detected, ...manuals, ...taughtRest]),
         [detected, manuals, taughtRest]
     );
+    const headline = loading ? null : timelineHeadline(fijosTimeline);
 
     function setHorizon(h: Horizon) {
         track("plan.horizon", { horizon: h, face: "recurrentes" });
         fijos.setHorizon(h);
     }
-
-    const period = useMemo(() => {
-        if (timeWindow.kind === "preset") return WINDOW_LABELS[timeWindow.id];
-        return periodChipLabel(timeWindow.start, timeWindow.end).replace(/^Periodo · /, "");
-    }, [timeWindow]);
-    const bankBit = banks.length > 0 ? ` · ${banks.join(", ")}` : "";
 
     /** Fijar: the series counts as committed money, in Recurrentes and Plan. */
     function pin(item: RecurringItem) {
@@ -214,27 +195,12 @@ export function RecurrentesView({
         !error;
     const emptyFilter = !loading && !emptyDetection && visible.length === 0;
 
-    /** Which period is being read, and the switch between the two faces. It
-     *  rides inside the reading itself — a card holding only a caption and a
-     *  pair of tabs is furniture — and gets a card of its own only in the
-     *  empty states, where there is no reading for it to head. */
-    const head = (
-        <div className="flex flex-wrap items-start justify-between gap-4">
-            <p className="eyebrow">
-                Periodo · {period}
-                {bankBit}
-            </p>
-            {tabs}
-        </div>
-    );
-
     return (
         <div className="space-y-5">
             {error && <BackendNotice what="Cargos Recurrentes" detail={error} />}
 
             {emptyDetection ? (
                 <>
-                    <section className="card">{head}</section>
                     <EmptyState
                         icon={Repeat}
                         title="Tomin aún no ve cobros que se repitan"
@@ -256,7 +222,6 @@ export function RecurrentesView({
                 </>
             ) : emptyFilter ? (
                 <>
-                    <section className="card">{head}</section>
                     <EmptyState icon={Repeat} title="Ninguna serie coincide">
                         Un criterio no cambia el cálculo: solo esconde filas. Quita
                         categoría o comercio para verlas todas.
@@ -265,11 +230,13 @@ export function RecurrentesView({
             ) : (
                 <>
                     <section className="card space-y-5">
-                        {head}
                         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
                             <div className="min-w-0">
+                                {/* The finding is the title; the metric's
+                                    name steps up into the eyebrow. */}
+                                {headline && <p className="eyebrow">Cargos Recurrentes</p>}
                                 <h2 className="text-title-sm font-normal text-ink">
-                                    Cargos Recurrentes
+                                    {headline || "Cargos Recurrentes"}
                                 </h2>
                                 <p className="mt-1 text-body-sm text-graphite">
                                     {loading ? (

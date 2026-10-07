@@ -19,7 +19,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-from datetime import date
+from datetime import date, time
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -58,6 +58,7 @@ def test_reads_store_date_total_and_items():
     parsed = read_receipt(SORIANA)
     assert parsed.store == "Soriana"
     assert parsed.purchased_at == date(2026, 8, 22)
+    assert parsed.purchased_time == time(19, 42)
     assert parsed.total == Decimal("141.60")
     assert [i.description for i in parsed.items] == [
         "LECHE LALA ENT 1L",
@@ -306,6 +307,86 @@ def test_deleting_a_receipt_takes_its_items_with_it(client):
     assert client.get("/api/receipts").get_json()["total"] == 0
 
 
+# --- the web's door: a photo, read on the server -------------------------
+class ScriptedOcr:
+    """A ReceiptImageOcr that answers with canned rows. Never decodes anything."""
+
+    label = "scripted-ocr"
+
+    def __init__(self, rows):
+        self.rows = rows
+        self.seen: list[bytes] = []
+
+    def read(self, image: bytes) -> list[str]:
+        self.seen.append(image)
+        return list(self.rows)
+
+
+def _upload(client, photo: bytes = b"a jpeg of the soriana ticket", **fields):
+    from io import BytesIO
+
+    data = {"file": (BytesIO(photo), "ticket.jpg"), **fields}
+    return client.post("/api/receipts/upload", data=data, content_type="multipart/form-data")
+
+
+def _with_ocr(container, ocr):
+    from tomin.application.use_cases import IngestReceiptImageUseCase
+
+    container.__dict__["ingest_receipt_image"] = IngestReceiptImageUseCase(
+        ocr=ocr, ingest=container.ingest_receipt
+    )
+
+
+def test_an_uploaded_photo_becomes_a_basket_and_is_not_kept(client, container):
+    ocr = ScriptedOcr(SORIANA)
+    _with_ocr(container, ocr)
+    res = _upload(client, captured_at="2026-08-22T19:45:00Z")
+    assert res.status_code == 201, res.get_json()
+    body = res.get_json()
+    assert body["receipt"]["extractor"] == "scripted-ocr"
+    assert body["receipt"]["purchased_at"] == "2026-08-22"
+    assert len(body["receipt"]["items"]) == 4
+    # The OCR saw the bytes once; the stored receipt carries only their hash.
+    assert ocr.seen == [b"a jpeg of the soriana ticket"]
+    stored = client.get(f"/api/receipts/{body['receipt_id']}").get_json()
+    assert "image" not in stored and stored["items_total"] == 141.6
+
+
+def test_the_same_photo_uploaded_twice_is_one_ticket(client, container):
+    _with_ocr(container, ScriptedOcr(SORIANA))
+    assert _upload(client).status_code == 201
+    assert _upload(client).status_code == 409
+    assert client.get("/api/receipts").get_json()["total"] == 1
+
+
+def test_a_photo_with_no_text_is_refused_not_stored(client, container):
+    _with_ocr(container, ScriptedOcr([]))
+    res = _upload(client, photo=b"a photo of the kitchen table")
+    assert res.status_code == 422
+    assert client.get("/api/receipts").get_json()["total"] == 0
+
+
+def test_without_an_ocr_engine_the_upload_says_what_to_install(client, container):
+    _with_ocr(container, None)
+    res = _upload(client)
+    assert res.status_code == 503
+    assert "receipts" in res.get_json()["error"]
+
+
+def test_rows_are_rejoined_across_the_two_columns():
+    from tomin.adapters.outbound.receipts.ocr import _Box, group_rows
+
+    rows = group_rows(
+        [
+            _Box("28.50 T", top=102, left=600, height=20),
+            _Box("LECHE LALA ENT 1L", top=100, left=40, height=22),
+            _Box("COCA COLA 600ML", top=140, left=40, height=22),
+            _Box("40.00 T", top=143, left=600, height=20),
+        ]
+    )
+    assert rows == ["LECHE LALA ENT 1L 28.50 T", "COCA COLA 600ML 40.00 T"]
+
+
 # --- the model-backed reader ---------------------------------------------
 class ScriptedChat:
     """A ChatPort that returns one canned answer. Never touches the network."""
@@ -361,6 +442,242 @@ def test_a_model_read_that_does_not_add_up_loses_to_the_regexes():
     parsed = _llm(answer).read(SORIANA)
     assert parsed.reader == "heuristic"
     assert len(parsed.items) == 4
+
+
+def test_the_date_at_the_foot_wins_over_an_earlier_one():
+    """Bodega Aurrerá prints the sale's date and time at the foot; a
+    promotion's expiry higher up is a date too, but it has no clock."""
+    parsed = read_receipt(
+        [
+            "BODEGA AURRERA",
+            "PROMOCION VALIDA HASTA 31/12/2026",
+            "LECHE LALA ENT 1L 28.50",
+            "TOTAL 28.50",
+            "TC 0451 AUT 004512",
+            "28/09/26          14:32",
+        ]
+    )
+    assert parsed.purchased_at == date(2026, 9, 28)
+    assert parsed.purchased_time == time(14, 32)
+
+
+def test_a_tax_marker_glued_to_the_price_is_not_part_of_it():
+    """The camera reads the ``T``/``A`` after a price as a digit stuck to
+    the cents; ``14.001`` is fourteen pesos, not a fourteen-thousandth."""
+    parsed = read_receipt(
+        [
+            "BODEGA AURRERA",
+            "1501052476960 CJ CHIPOTLE 14.001",
+            "1506995002930 GV TAMARIND 3.504",
+            "TOTAL 17.50",
+        ]
+    )
+    assert [(i.description, str(i.amount)) for i in parsed.items] == [
+        ("CJ CHIPOTLE", "14.00"),
+        ("GV TAMARIND", "3.50"),
+    ]
+
+
+def test_a_walmart_ticket_as_the_camera_reads_it():
+    """Rows straight from a photo: barcodes glued to names, zeros for O's,
+    Walmart's price-times-quantity, a department header joined onto a row,
+    the TOTAL read as words, and the card slip's IMPORTE carrying the figure."""
+    parsed = read_receipt(
+        [
+            "mi BodegaAurrera TOTAL",
+            "ARTICULO CANT.",
+            "7501030452553PAN ARTESA 61.00T",
+            "7501017004270 C0ST FRIJO 13.50x2 27.00T",
+            "31BOLILLO 1.90×6 11.40T",
+            "QUESOSYEMBUTIDOS- 7501040007934CHX T0CINO 57.00T",
+            "40112PLATANOCHIA 0.675KGSX17.00/KG 11.48T",
+            "Rebaja 1x$46-14.00x 46.00T",
+            "SUBTOTAL 83.44",
+            "UNMIL TOTAL QUINIENTOS SIETEPESOS 40/100M",
+            "TARJETA:Mastercard IMP0RTE:$1,507.40",
+            "26/09/26 15:23",
+        ]
+    )
+    assert parsed.store == "Mi Bodega Aurrera"
+    assert parsed.total == Decimal("1507.40")
+    assert parsed.purchased_at == date(2026, 9, 26)
+    assert [(i.description, str(i.amount), i.quantity, i.unit_price) for i in parsed.items] == [
+        ("PAN ARTESA", "61.00", None, None),
+        ("COST FRIJO", "27.00", Decimal("2"), Decimal("13.50")),
+        ("BOLILLO", "11.40", Decimal("6"), Decimal("1.90")),
+        ("CHX TOCINO", "57.00", None, None),
+        ("PLATANOCHIA", "11.48", Decimal("0.675"), Decimal("17.00")),
+    ]
+
+
+def test_a_discount_under_an_item_is_the_price_it_cost():
+    parsed = read_receipt(
+        [
+            "BODEGA AURRERA",
+            "7501040083136LVI MANCH 60.00T",
+            "Rebaja 1x$46-14.00x 46.00T",
+            "7509552963663 FRUCTIS SH 122.00x1 122.00A",
+            "02MBCOMBINA-49.50X 72.50A",
+            "TOTAL 118.50",
+        ]
+    )
+    assert [(i.description, str(i.amount)) for i in parsed.items] == [
+        ("LVI MANCH", "46.00"),
+        ("FRUCTIS SH", "72.50"),
+    ]
+
+
+def test_a_price_whose_name_the_camera_lost_still_counts():
+    """A crease took the names; the prices are real and the basket adds up."""
+    from tomin.domain.services.products import UNREADABLE_LINE, product_key
+
+    parsed = read_receipt(
+        [
+            "WALMART",
+            "MASCOTAS 55.00A",
+            "20.00A",
+            "7502002873376 PERRO 10KG 784.00A",
+            "SUBTOTAL 859.00",
+            "991.06",
+            "TOTAL 859.00",
+        ]
+    )
+    # "MASCOTAS 55.00A" is the department header the camera glued onto the
+    # first item's price: a price with no name, like the bare "20.00A".
+    assert [(i.description, str(i.amount)) for i in parsed.items] == [
+        (UNREADABLE_LINE, "55.00"),
+        (UNREADABLE_LINE, "20.00"),
+        ("PERRO 10KG", "784.00"),
+    ]
+    assert product_key(UNREADABLE_LINE) == ""
+
+
+def test_a_dotted_thousands_total_reads_whole():
+    parsed = read_receipt(["WALMART", "PAN 15.00T", "TARJETA IMP0RTE:$1.575.68"])
+    assert parsed.total == Decimal("1575.68")
+
+
+def test_ocr_zeros_do_not_split_one_product_into_two():
+    from tomin.domain.services.products import product_key
+
+    assert product_key("C0ST FRIJ0") == product_key("COST FRIJO")
+    assert product_key("D0L0RES AC") == product_key("DOLORES AC")
+    # Real digits stay: a size is a size.
+    assert product_key("LALA 900G") == product_key("LALA 900 G")
+
+
+def test_department_headers_and_bare_arithmetic_are_not_products():
+    """A header glued to a price is a product whose name the camera lost;
+    a header joined onto a product row is words to take off it; arithmetic
+    and a label-less subtotal are neither."""
+    from tomin.domain.services.products import UNREADABLE_LINE
+
+    parsed = read_receipt(
+        [
+            "WALMART",
+            "ABARROTES PROCESADOS 5.00A",
+            "7501079011261 ITAL PASTA 37.00T",
+            "LACTEOS",
+            "QUIMICOS- 7509546684253AXN VIN 64 32.00A",
+            "7509552849523FRUCTIS TR TOCADOR- 74.00A",
+            "38.00 x 114.00A",
+            "S 1,415.74",
+            "TOTAL 151.00",
+        ]
+    )
+    assert [(i.description, str(i.amount)) for i in parsed.items] == [
+        (UNREADABLE_LINE, "5.00"),
+        ("ITAL PASTA", "37.00"),
+        ("AXN VIN 64", "32.00"),
+        ("FRUCTIS TR", "74.00"),
+    ]
+
+
+def test_two_rows_joined_keep_the_amount_the_arithmetic_names():
+    parsed = read_receipt(["WALMART", "7501045400846 D0L0RES AC 42.00×2 84.00T 74.00C", "TOTAL 158.00"])
+    assert [(i.description, str(i.amount), i.quantity) for i in parsed.items] == [
+        ("DOLORES AC", "84.00", Decimal("2")),
+    ]
+
+
+def test_a_model_price_that_is_not_on_the_cited_line_is_dropped():
+    """Asked for a number, a model reading noise produces one; only prices
+    whose digits are on the ticket survive."""
+    answer = json.dumps(
+        {
+            "store": "SORIANA HIPER",
+            "purchased_at": "2026-08-22",
+            "purchased_time": "19:42",
+            "total": "141.60",
+            "items": [
+                {"line_no": 4, "description": "LECHE LALA ENT 1L", "amount": "28.50"},
+                # The name line; the arithmetic is on the line under it.
+                {"line_no": 5, "description": "COCA COLA 600ML", "amount": "40.00",
+                 "quantity": "2", "unit_price": "20.00"},
+                {"line_no": 8, "description": "JITOMATE SALADETTE", "amount": "27.20"},
+                {"line_no": 9, "description": "PAN BIMBO GRANDE", "amount": "45.90"},
+                # No 12.00 anywhere near line 9: a price the model made up.
+                {"line_no": 9, "description": "SALSA VALENTINA", "amount": "12.00"},
+            ],
+        }
+    )
+    parsed = _llm(answer).read(SORIANA)
+    assert parsed.reader == "llm:fake/model"
+    assert [i.description for i in parsed.items] == [
+        "LECHE LALA ENT 1L",
+        "COCA COLA 600ML",
+        "JITOMATE SALADETTE",
+        "PAN BIMBO GRANDE",
+    ]
+
+
+def test_a_date_spelled_with_a_month_name_and_an_ocr_space():
+    parsed = read_receipt(["OXXO", "PAN 15.00", "TOTAL 15.00", "28 /SEP/ 26  09:05"])
+    assert parsed.purchased_at == date(2026, 9, 28)
+    assert parsed.purchased_time == time(9, 5)
+
+
+def test_a_model_that_forgets_the_date_keeps_the_one_the_regexes_found():
+    answer = json.dumps(
+        {
+            "store": "SORIANA HIPER",
+            "purchased_at": None,
+            "purchased_time": None,
+            "total": "141.60",
+            "items": [
+                {"line_no": 4, "description": "LECHE LALA ENT 1L", "amount": "28.50"},
+                {"line_no": 5, "description": "COCA COLA 600ML", "amount": "40.00",
+                 "quantity": "2", "unit_price": "20.00"},
+                {"line_no": 7, "description": "JITOMATE SALADETTE", "amount": "27.20"},
+                {"line_no": 9, "description": "PAN BIMBO GRANDE", "amount": "45.90"},
+            ],
+        }
+    )
+    parsed = _llm(answer).read(SORIANA)
+    assert parsed.reader == "llm:fake/model"
+    assert parsed.purchased_at == date(2026, 8, 22)
+    assert parsed.purchased_time == time(19, 42)
+
+
+def test_an_answer_cut_short_keeps_the_items_it_finished():
+    """A model out of tokens stops mid-item; the complete ones still count."""
+    answer = (
+        '{"store": "SORIANA HIPER", "purchased_at": "2026-08-22", "purchased_time": "19:42",'
+        ' "total": "141.60", "items": ['
+        '{"line_no": 4, "description": "LECHE LALA ENT 1L", "amount": "28.50"},'
+        '{"line_no": 5, "description": "COCA COLA 600ML", "amount": "40.00", "quantity": "2", "unit_price": "20.00"},'
+        '{"line_no": 7, "description": "JITOMATE SALADETTE", "amount": "27.20"},'
+        '{"line_no": 9, "description": "PAN BIMBO GRANDE", "amount": "45.90"},'
+        '{"line_no": 12, "descr'
+    )
+    parsed = _llm(answer).read(SORIANA)
+    assert parsed.reader == "llm:fake/model"
+    assert [i.description for i in parsed.items] == [
+        "LECHE LALA ENT 1L",
+        "COCA COLA 600ML",
+        "JITOMATE SALADETTE",
+        "PAN BIMBO GRANDE",
+    ]
 
 
 def test_an_answer_that_is_not_json_is_not_an_error():

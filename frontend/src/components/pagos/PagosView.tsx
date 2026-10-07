@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { BellOff, CreditCard } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useAppData } from "@/components/AppChrome";
@@ -9,6 +10,7 @@ import { dayLabel, mxn2 } from "@/lib/format";
 import { fromIso } from "@/lib/porMes";
 import { useRecurringSeries } from "@/components/recurrentes/useRecurringSeries";
 import { cardStateFrom, latestStatementEnd, type CardState } from "./cardPayment";
+import { isScheduledPayment } from "./dueMonth";
 import { PagosCalendar } from "./PagosCalendar";
 
 /**
@@ -26,10 +28,14 @@ import { PagosCalendar } from "./PagosCalendar";
  */
 export function PagosView() {
     const { dataVersion } = useAppData();
-    const { dated: items, loading, error } = useRecurringSeries(dataVersion);
+    const { dated, loading, error } = useRecurringSeries(dataVersion);
     const statements = useStatements(dataVersion);
     const card = cardStateFrom(statements);
     const ledgerEnd = latestStatementEnd(statements);
+    // Store visits that merely repeat (OXXO, Walmart, Bodega) are a habit:
+    // the amount swings. The calendar keeps a stable charge, and a bill whose
+    // cadence is the commitment — bimonthly, semiannual — even when it moves.
+    const items = useMemo(() => dated.filter(isScheduledPayment), [dated]);
 
     const empty =
         !loading && !error && items.length === 0 && card.kind !== "read";
@@ -44,8 +50,8 @@ export function PagosView() {
                 <PagosSkeleton />
             ) : empty ? (
                 <EmptyState icon={BellOff} title="Sin pagos que anticipar">
-                    El calendario se llena con los cobros que se repiten. Hacen falta al
-                    menos tres del mismo lugar, o uno agregado a mano en Plan.
+                    El calendario se llena con cargos de monto fijo, y con los bimestrales
+                    y semestrales. Una visita a la tienda, aunque se repita, no es un pago.
                 </EmptyState>
             ) : (
                 <section className="card space-y-5">
@@ -53,9 +59,8 @@ export function PagosView() {
                         items={items}
                         card={card.kind === "read" ? card.payment : null}
                     />
-                    <Legend />
                     <p className="text-label text-ash">
-                        Proyectado desde tus cobros que se repiten.
+                        Proyectado desde tus cargos fijos, bimestrales y semestrales.
                         {ledgerEnd && <> Último estado de cuenta: {dayLabel(fromIso(ledgerEnd))}.</>}
                     </p>
                 </section>
@@ -105,21 +110,6 @@ function CardRow({ card }: { card: CardState }) {
                 {card.kind === "read" ? mxn2(card.amount) : "—"}
             </span>
         </div>
-    );
-}
-
-function Legend() {
-    return (
-        <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-label text-graphite">
-            <li className="inline-flex items-center gap-1.5">
-                <span aria-hidden className="h-2 w-2 rounded-full bg-ink" />
-                Programado
-            </li>
-            <li className="inline-flex items-center gap-1.5">
-                <span aria-hidden className="h-2 w-2 rounded-full bg-muted" />
-                Registrado
-            </li>
-        </ul>
     );
 }
 

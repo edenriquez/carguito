@@ -141,7 +141,7 @@ export type RecurringItem = {
     key: string;
     label: string;
     occurrences: number;
-    frequency: "weekly" | "biweekly" | "monthly" | "bimonthly" | "yearly";
+    frequency: "weekly" | "biweekly" | "monthly" | "bimonthly" | "semiannual" | "yearly";
     /** Median charge. */
     typical_amount: number;
     /** What the series costs per 30 days — the ranking measure. */

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from sqlalchemy import (
     JSON,
@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
+    Time,
     ForeignKey,
     Integer,
     Numeric,
@@ -440,6 +441,7 @@ class ReceiptModel(Base):
     transaction_id: Mapped[str | None] = mapped_column(UUIDStr, index=True, nullable=True)
     store: Mapped[str | None] = mapped_column(String(160), nullable=True)
     purchased_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    purchased_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     total: Mapped[Numeric | None] = mapped_column(Numeric(14, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), default="MXN")
     # Who attached it: the matcher ("auto") or the user ("user"). Same contract

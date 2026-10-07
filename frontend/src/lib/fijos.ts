@@ -63,7 +63,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-const FREQUENCIES: Frequency[] = ["weekly", "biweekly", "monthly", "bimonthly", "yearly"];
+const FREQUENCIES: Frequency[] = ["weekly", "biweekly", "monthly", "bimonthly", "semiannual", "yearly"];
 
 function isFrequency(v: unknown): v is Frequency {
     return typeof v === "string" && (FREQUENCIES as string[]).includes(v);
@@ -200,6 +200,7 @@ const CADENCE_DAYS: Record<Frequency, number> = {
     biweekly: 14,
     monthly: 30,
     bimonthly: 60,
+    semiannual: 182,
     yearly: 365,
 };
 
@@ -214,6 +215,9 @@ function stepForward(d: Date, frequency: Frequency): Date {
             break;
         case "bimonthly":
             next.setMonth(next.getMonth() + 2);
+            break;
+        case "semiannual":
+            next.setMonth(next.getMonth() + 6);
             break;
         case "yearly":
             next.setFullYear(next.getFullYear() + 1);

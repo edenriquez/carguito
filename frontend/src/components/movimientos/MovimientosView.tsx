@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchX, Inbox } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useAppData } from "@/components/AppChrome";
@@ -36,6 +36,7 @@ import {
     COLOR_MODES,
     TransactionsChart,
     dateToMs,
+    medianAmount,
     type ChartMode,
     type ColorMode,
 } from "@/components/charts/TransactionsChart";
@@ -123,6 +124,11 @@ export function MovimientosView() {
     const [visibleCount, setVisibleCount] = useState(page);
     const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
     const { openDraft, opening } = useLectura();
+    // The default lens focus is offered once per reading. `defaulted` says
+    // it was placed; `userTouched` says the user picked or dropped (Esc) one,
+    // and from then on a refetch of the lecturas never overrides that choice.
+    const lensDefaulted = useRef(false);
+    const lensUserTouched = useRef(false);
     // A new window, search or page size is a new reading: selection and paging
     // reset.
     useEffect(() => {
@@ -130,6 +136,8 @@ export function MovimientosView() {
         setVisibleCount(page);
         setExcluded(new Set());
         setLensFocus(null);
+        lensDefaulted.current = false;
+        lensUserTouched.current = false;
     }, [windowKey, query, dataVersion, page, statementIds]);
 
     const filtered = useMemo(() => {
@@ -166,6 +174,17 @@ export function MovimientosView() {
         });
     }, [filtered, attention, mode]);
 
+    // A new set of lecturas opens on its most serious one (warn before
+    // info) instead of waiting for a click; a chip or Esc replaces it. Runs
+    // after the reset above, so a new window lands focused, not cleared — and
+    // only once per reading, so lecturas arriving late never undo a choice.
+    useEffect(() => {
+        if (lensDefaulted.current || lensUserTouched.current) return;
+        if (lensGroups.length === 0) return;
+        lensDefaulted.current = true;
+        setLensFocus(defaultFocus(lensGroups));
+    }, [lensGroups, windowKey, query, dataVersion, page, statementIds]);
+
     const attentionByRow = useMemo(
         () => new Map(attention.map((a) => [a.transaction_id, a.kind])),
         [attention]
@@ -173,6 +192,7 @@ export function MovimientosView() {
 
     const onLensFocus = useCallback((next: LensFocus) => {
         if (next) track("lens.open", { chart: "movimientos", kind: next.groupId, index: next.index });
+        lensUserTouched.current = true;
         setLensFocus(next);
     }, []);
 
@@ -224,13 +244,48 @@ export function MovimientosView() {
     }, [filtered, bounds.start, bounds.end, query]);
     const filtering = queryIsActive(query) && Boolean(listed && listed.length > 0);
 
+    // The orientation becomes the title, with the contrast that makes it
+    // a finding — the biggest cargo against the typical one. The span and the
+    // criteria move under it with the chart's name.
+    const finding = useMemo(() => {
+        if (!filtered) return null;
+        const expenses = filtered.filter((t) => t.type === "expense");
+        if (expenses.length === 0) return null;
+        const spent = expenses.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const head = `Salieron ${mxn(spent)} en ${expenses.length.toLocaleString("es-MX")} cargo${expenses.length === 1 ? "" : "s"}`;
+        const median = medianAmount(filtered);
+        if (expenses.length < 3 || !median) return head;
+        const top = expenses.reduce((a, b) => (Math.abs(b.amount) > Math.abs(a.amount) ? b : a));
+        const times = Math.abs(top.amount) / median;
+        const x = times < 10 ? times.toFixed(1).replace(/\.0$/, "") : String(Math.round(times));
+        return `${head}; el mayor, ${shorten(top.description)} ${mxn(Math.abs(top.amount))}, es ${x}× tu mediana`;
+    }, [filtered]);
+    const findingSub = useMemo(() => {
+        if (!finding || !orientation) return orientation;
+        const span =
+            bounds.start && bounds.end
+                ? `del ${dayLabel(fromIso(bounds.start))} al ${dayLabel(fromIso(bounds.end))}`
+                : "todo tu historial";
+        const needle = query.needle.trim()
+            ? ` · contiene «${query.needle.trim()}»`
+            : queryIsActive(query)
+              ? " · estos criterios"
+              : "";
+        return `Cada movimiento · ${span}${needle}`;
+    }, [finding, orientation, bounds.start, bounds.end, query]);
+    // The category the reading is narrowed to keeps its color; the rest fade.
+    const focusCategoryId =
+        query.categoryIds.length === 1 && query.categoryIds[0] !== UNCATEGORIZED
+            ? query.categoryIds[0]!
+            : null;
+
     return (
         <div className="space-y-4 sm:space-y-6">
             {error && <BackendNotice what="tus movimientos" detail={error} />}
 
             <ChartCard
-                title="Cada movimiento"
-                subtitle={orientation}
+                title={finding ?? "Cada movimiento"}
+                subtitle={finding ? findingSub : orientation}
                 action={<PanelSettingsToggle />}
                 controls={
                     <>
@@ -325,6 +380,8 @@ export function MovimientosView() {
                             onRangeSelect={(r) =>
                                 r && selectCustom(msToIso(r.start), msToIso(r.end), "drag:movimientos")
                             }
+                            focusCategoryId={focusCategoryId}
+                            ariaLabel={finding ?? undefined}
                         />
                     </ChartLens>
                     </div>
@@ -519,6 +576,21 @@ function EmptyNote({
 function fromIso(day: string): Date {
     const [y, m, d] = day.split("-").map(Number);
     return new Date(y, m - 1, d);
+}
+
+/** The lectura a fresh set opens on — the first warn, else the first. */
+function defaultFocus(groups: LensGroup[]): LensFocus {
+    for (const g of groups) {
+        const index = g.lecturas.findIndex((l) => l.severity === "warn");
+        if (index >= 0) return { groupId: g.id, index };
+    }
+    return groups[0]?.lecturas.length ? { groupId: groups[0].id, index: 0 } : null;
+}
+
+/** A merchant line short enough for a title. */
+function shorten(description: string): string {
+    const d = description.trim();
+    return d.length > 28 ? `${d.slice(0, 27).trimEnd()}…` : d;
 }
 
 /** "Cargo inusual" → "Cargos inusuales"; the other labels pluralise by a plain s. */

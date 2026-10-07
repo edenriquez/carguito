@@ -21,6 +21,10 @@ export const ENIGH_MONTHLY = {
     gasto: [5652, 7778, 9443, 10939, 12490, 14342, 16281, 19163, 23497, 39329],
 } as const;
 
+/** What each decile's household spends of every peso it takes in. Decile I
+ *  runs above one: the poorest households report spending more than they earn. */
+export const ENIGH_SPEND_RATIO = ENIGH_MONTHLY.gasto.map((g, i) => g / ENIGH_MONTHLY.ingreso[i]!);
+
 /** The national household spends this much of each peso it takes in. */
 export const NATIONAL_SPEND_RATIO = 47674 / 77864;
 

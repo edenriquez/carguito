@@ -36,6 +36,17 @@ export function ChartLens({
     children: ReactNode;
 }) {
     const rootRef = useRef<HTMLDivElement>(null);
+    // The OS setting reduces motion too, not only the dev toggle. Read
+    // after mount — there is no matchMedia on the server.
+    const [osReduced, setOsReduced] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+        setOsReduced(mq.matches);
+        const onChange = () => setOsReduced(mq.matches);
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
+    }, []);
+    const reduced = reducedMotion || osReduced;
 
     const focused: Lectura | null = useMemo(() => {
         if (!focus) return null;
@@ -102,7 +113,7 @@ export function ChartLens({
     return (
         <div
             ref={rootRef}
-            className={cn("lens relative", focused && "lens-active", reducedMotion && "lens-reduced", className)}
+            className={cn("lens relative", focused && "lens-active", reduced && "lens-reduced", className)}
             style={keep !== undefined ? ({ "--lens-keep": String(keep + 1) } as CSSProperties) : undefined}
             data-lens-keep={keep !== undefined ? keep + 1 : undefined}
         >

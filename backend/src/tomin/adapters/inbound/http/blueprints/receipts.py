@@ -4,14 +4,23 @@ from uuid import UUID
 
 from flask import Blueprint, jsonify, request
 
+from .....application.ports.outbound import UnreadableImageError
 from .....application.use_cases.receipts import (
+    DuplicateReceiptError,
+    NoTextInImageError,
     ReceiptNotFoundError,
+    ReceiptOcrUnavailableError,
     TransactionAlreadyHasReceiptError,
     UnknownTransactionError,
 )
 from ..auth import current_user_id, get_container
 from ..serialization import receipt_json
 from ._helpers import query_int
+from .ingest import _timestamp, receipt_result_json
+
+#: A phone photo re-encoded by the browser is well under a megabyte; this
+#: is a sanity cap, not a budget.
+MAX_UPLOAD_BYTES = 12 * 1024 * 1024
 
 receipts_bp = Blueprint("receipts", __name__, url_prefix="/api/receipts")
 
@@ -24,6 +33,62 @@ def list_receipts():
         offset=query_int("offset", 0),
     )
     return jsonify(items=[receipt_json(r) for r in receipts], total=total)
+
+
+@receipts_bp.post("/upload")
+def upload_receipt():
+    """A ticket photo from the web, read here and discarded.
+
+    Multipart: ``file`` (the image), optional ``captured_at`` (ISO-8601, when
+    the photo was taken) and ``transaction_id``. The bytes live for the
+    length of the request: the OCR reads them in memory, the rows go through
+    the same pipeline the phone's text does, and nothing of the image is
+    kept — not on disk, not in a log line. Same answer shape as
+    ``POST /api/ingest/receipt``.
+    """
+    container = get_container()
+    upload = request.files.get("file")
+    if upload is None or not upload.filename:
+        return jsonify(error="Falta la foto del ticket ('file')"), 400
+    image = upload.read(MAX_UPLOAD_BYTES + 1)
+    if len(image) > MAX_UPLOAD_BYTES:
+        return jsonify(error="La foto pesa demasiado; bájale la resolución"), 413
+
+    raw_transaction = request.form.get("transaction_id") or None
+    try:
+        transaction_id = UUID(raw_transaction) if raw_transaction else None
+    except ValueError:
+        return jsonify(error="'transaction_id' must be a UUID"), 400
+
+    try:
+        result = container.ingest_receipt_image.execute(
+            user_id=current_user_id(),
+            image=image,
+            captured_at=_timestamp(request.form.get("captured_at")),
+            transaction_id=transaction_id,
+        )
+    except ReceiptOcrUnavailableError:
+        return (
+            jsonify(
+                error="Este servidor no tiene OCR para tickets. "
+                "Instala el extra: pip install '.[receipts]'"
+            ),
+            503,
+        )
+    except UnreadableImageError:
+        return jsonify(error="No pude abrir esta imagen. Entran JPG, PNG o WebP."), 415
+    except NoTextInImageError:
+        return jsonify(error="No alcancé a leer texto en la foto. Prueba con más luz y la foto derecha."), 422
+    except DuplicateReceiptError:
+        return jsonify(error="Esta foto ya fue procesada"), 409
+    except UnknownTransactionError:
+        return jsonify(error="Movimiento no encontrado"), 404
+    except TransactionAlreadyHasReceiptError:
+        return jsonify(error="Ese movimiento ya tiene un ticket"), 409
+    finally:
+        image = b""
+
+    return jsonify(receipt_result_json(result, container.settings.frontend_url)), 201
 
 
 @receipts_bp.get("/for-transaction/<transaction_id>")

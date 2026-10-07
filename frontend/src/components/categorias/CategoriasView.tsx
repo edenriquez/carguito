@@ -94,6 +94,8 @@ export function CategoriasView() {
     // corrected.
     const [edits, setEdits] = useState(0);
     const { openDraft, opening } = useLectura();
+    // The chip under the pointer — a transient focus over the chart.
+    const [hovered, setHovered] = useState<string | null>(null);
 
     // What the list is showing. Both come from the chart or the chips, and
     // both are session state — a filter is a question, not a preference.
@@ -193,17 +195,38 @@ export function CategoriasView() {
 
     /** One chip per category the period actually touched, biggest first —
      *  the stack's own order, so chart and chips agree on what matters. */
-    const chips: CategoryChip[] = useMemo(() => {
+    const ranked = useMemo(() => {
         const totals = new Map<string, number>();
         for (const p of points) totals.set(p.category, (totals.get(p.category) ?? 0) + p.amount);
-        return Array.from(totals.entries())
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, amount]) => ({
+        return Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+    }, [points]);
+
+    // The category the reading is about — the one picked alone, else the
+    // window's biggest. The title names it; it keeps its own color like every
+    // other layer, so naming it is the whole of the default focus.
+    const focus =
+        pickedCategories.length === 1
+            ? pickedCategories[0]!
+            : pickedCategories.length === 0
+              ? (ranked[0]?.[0] ?? null)
+              : null;
+
+    // Every category wears its taxonomy color. A focus (a chip under the
+    // pointer, or a filter) fades the other chips' swatches instead of
+    // recoloring anything.
+    const chips: CategoryChip[] = useMemo(
+        () =>
+            ranked.map(([name, amount]) => ({
                 name,
                 amount,
                 color: categoryColors.get(name) ?? UNCATEGORIZED_COLOR,
-            }));
-    }, [points, categoryColors]);
+                faded: hovered
+                    ? !sameCategory(name, hovered)
+                    : pickedCategories.length > 0 &&
+                      !pickedCategories.some((n) => sameCategory(n, name)),
+            })),
+        [ranked, categoryColors, hovered, pickedCategories]
+    );
 
     // Taxonomy entries the period never touched.
     const untouched = useMemo(() => {
@@ -320,6 +343,60 @@ export function CategoriasView() {
         [monthKeys, selectCustom]
     );
 
+    // Hovering a chip whose layer is drawn fades every other layer.
+    const dimmed = useMemo(() => {
+        if (!hovered || !chartPoints.some((p) => sameCategory(p.category, hovered))) {
+            return undefined;
+        }
+        return new Set(chartPoints.map((p) => p.category).filter((c) => !sameCategory(c, hovered)));
+    }, [hovered, chartPoints]);
+
+    // The month of the latest movement, if the statement stops before it
+    // ends — drawn apart and kept out of the mean and the month-on-month delta.
+    const partial = useMemo(() => {
+        if (!items?.length) return null;
+        const latest = items.reduce((max, t) => (t.date > max ? t.date : max), items[0]!.date);
+        const [y, m, d] = latest.split("-").map(Number);
+        if (!y || !m || !d) return null;
+        const lastDay = new Date(y, m, 0).getDate();
+        return d < lastDay ? { month: latest.slice(0, 7), day: d } : null;
+    }, [items]);
+
+    // The chart's title is its finding, from the whole window (not the
+    // drawn subset): the focus category's share, its total, and — with two
+    // complete months — how the last one moved against the one before.
+    const finding = useMemo(() => {
+        if (!focus || points.length === 0) return null;
+        let all = 0;
+        let own = 0;
+        const months: string[] = [];
+        const byMonth = new Map<string, number>();
+        for (const p of points) {
+            all += p.amount;
+            if (!months.includes(p.month)) months.push(p.month);
+            if (sameCategory(p.category, focus)) {
+                own += p.amount;
+                byMonth.set(p.month, (byMonth.get(p.month) ?? 0) + p.amount);
+            }
+        }
+        if (all <= 0 || own <= 0) return null;
+        const n = months.length;
+        let text = `${focus} fue ${Math.round((own / all) * 100)}% de tu gasto: ${mxn(own)} en ${n} ${n === 1 ? "mes" : "meses"}`;
+        const complete = months.filter((m) => m !== partial?.month);
+        const last = complete[complete.length - 1];
+        const prev = complete[complete.length - 2];
+        const before = prev ? (byMonth.get(prev) ?? 0) : 0;
+        if (last && prev && before > 0) {
+            const delta = Math.round((((byMonth.get(last) ?? 0) - before) / before) * 100);
+            const label = (key: string) => {
+                const date = parsePeriodKey(key);
+                return date ? monthLabel(date) : key;
+            };
+            text += `; ${delta > 0 ? "+" : ""}${delta}% en ${label(last)} vs ${label(prev)}`;
+        }
+        return text;
+    }, [focus, points, partial]);
+
     const pickedMonthLabel = useMemo(() => {
         if (!pickedMonths) return undefined;
         const label = (key: string) => {
@@ -341,7 +418,10 @@ export function CategoriasView() {
                 </EmptyState>
             ) : (
                 <>
-                    <ChartCard title="Gasto por categoría, mes a mes">
+                    <ChartCard
+                        title={finding ?? "Gasto por categoría, mes a mes"}
+                        subtitle={finding ? "Gasto por categoría, mes a mes" : undefined}
+                    >
                         {loading ? (
                             <Skeleton className="h-[360px]" />
                         ) : (
@@ -368,10 +448,13 @@ export function CategoriasView() {
                                         points={chartPoints}
                                         categoryColors={categoryColors}
                                         onPick={handlePick}
+                                        dimmed={dimmed}
+                                        partial={partial}
+                                        ariaLabel={finding ?? undefined}
                                     />
                                 </RangeBrush>
                                 </div>
-                                <p className="text-label text-ash">
+                                <p className="text-label text-graphite">
                                     Haz clic en una capa para ver sus movimientos, o
                                     arrastra sobre los meses para acotar un rango.
                                     {untouched.length > 0 &&
@@ -406,6 +489,7 @@ export function CategoriasView() {
                                 month={pickedMonths?.start ?? null}
                                 monthLabel={pickedMonthLabel}
                                 onClearMonth={() => setPickedMonths(null)}
+                                onHover={setHovered}
                             />
                         </div>
 

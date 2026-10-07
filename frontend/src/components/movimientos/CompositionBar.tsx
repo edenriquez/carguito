@@ -31,12 +31,17 @@ function midpoint(slices: CategorySlice[], key: string): number {
  * - **Legend is name + percent, never an amount.** The amount appears once,
  *   on the pin over the open slice, so the bar never competes with the total
  *   stated in the header above it.
- * - **Hue is not the category channel.** Every slice is a step of the stone
- *   ramp ordered by size. Signal is the pointer and the page's subject, in
+ * - **Without `colorOf`, hue is not the channel.** A basket of products has
+ *   no colors of its own, so every slice is a step of the stone ramp ordered
+ *   by size. Signal is the pointer and the page's subject, in
  *   that order: a slice turns Signal under the cursor, and the one the page is
  *   currently about keeps it plus a white inset ring, so hovering a neighbour
  *   never makes the open slice look closed. Hover is colour only — the click
  *   is the one thing that opens a category in the list below.
+ *
+ * With `colorOf` (category bars): a category is its taxonomy color here as
+ * everywhere else. Focus fades the other slices instead of painting the focused one
+ * Signal; the open slice carries an Ink ring.
  */
 export function CompositionBar({
     slices,
@@ -44,6 +49,7 @@ export function CompositionBar({
     onPick,
     countLabel = defaultCountLabel,
     label = "Composición del periodo por categoría",
+    colorOf,
 }: {
     slices: CategorySlice[];
     activeKey: string | null;
@@ -53,6 +59,10 @@ export function CompositionBar({
     countLabel?: (n: number) => string;
     /** What the bar is a picture of, for assistive tech. */
     label?: string;
+    /** Category bars only: each slice's own taxonomy color. The focused
+     *  slice (pointed at or open) keeps it and gets an Ink outline; the rest
+     *  fade. Absent — a basket of products — the stone ramp stands. */
+    colorOf?: (slice: CategorySlice) => string;
 }) {
     // Above the early return, where every hook has to be: a period with no
     // cargos is exactly the render that would change the hook order.
@@ -66,9 +76,20 @@ export function CompositionBar({
     if (slices.length === 0) return null;
 
     const named = slices.filter((s) => !s.uncategorized);
-    const legend = named.slice(0, LEGEND_MAX);
-    const pinned = slices.find((s) => s.key === (hoverKey ?? activeKey)) ?? null;
+    // A gap worth more than a twentieth of the spend is part of the
+    // reading, so the legend names it too — last, like the bar draws it.
+    const gap = slices.find((s) => s.uncategorized && s.share > 0.05);
+    const legend = [...named.slice(0, LEGEND_MAX), ...(gap ? [gap] : [])];
+    // With nothing pointed at or open, the pin rests on the biggest slice
+    // — the one the title names — so its figure is on screen without a hover.
+    const restKey = named[0]?.key ?? null;
+    const pinned = slices.find((s) => s.key === (hoverKey ?? activeKey ?? restKey)) ?? null;
     const pin = pinned ? midpoint(slices, pinned.key) : null;
+    // Own colors: only a real focus fades the others — the resting pin on
+    // the biggest slice is a label, not a selection.
+    const own = colorOf;
+    const focusKey = hoverKey ?? activeKey;
+    const faded = (key: string) => focusKey !== null && key !== focusKey;
 
     return (
         <div>
@@ -131,9 +152,13 @@ export function CompositionBar({
                                 // any class and there would be nothing to swap.
                                 style={{
                                     flex: `0 0 ${Math.max(s.share * 100, s.share > 0 ? 0.8 : 0)}%`,
-                                    "--seg": barFill(i, s.uncategorized, on),
+                                    "--seg": own ? own(s) : barFill(i, s.uncategorized, on),
+                                    ...(own && faded(s.key) ? { opacity: 0.3 } : {}),
                                 } as CSSProperties}
-                                className={cn(
+                                className={own ? cn(
+                                    "h-full bg-[color:var(--seg)] transition-opacity duration-100",
+                                    on && "ring-2 ring-inset ring-ink"
+                                ) : cn(
                                     // Signal under the pointer, and nothing
                                     // else: pointing at a slice must not open
                                     // it. The click is what opens it, below.
@@ -159,7 +184,9 @@ export function CompositionBar({
                                 onPointerLeave={() => setHoverKey((c) => (c === s.key ? null : c))}
                                 onFocus={() => setHoverKey(s.key)}
                                 onBlur={() => setHoverKey((c) => (c === s.key ? null : c))}
-                                style={{ "--dot": barFill(rank, false, on) } as CSSProperties}
+                                style={{
+                                    "--dot": own ? own(s) : barFill(rank, s.uncategorized, on),
+                                } as CSSProperties}
                                 className={cn(
                                     "group inline-flex items-center gap-1.5 transition-colors duration-100",
                                     on ? "font-medium text-ink" : "hover:text-ink"
@@ -172,7 +199,12 @@ export function CompositionBar({
                                     control. */}
                                 <span
                                     aria-hidden
-                                    className="h-2 w-2 shrink-0 rounded-full bg-[color:var(--dot)] transition-colors duration-100 group-hover:bg-signal"
+                                    className={cn(
+                                        "h-2 w-2 shrink-0 rounded-full bg-[color:var(--dot)]",
+                                        own
+                                            ? cn("transition-opacity duration-100", faded(s.key) && "opacity-30")
+                                            : "transition-colors duration-100 group-hover:bg-signal"
+                                    )}
                                 />
                                 <span className="whitespace-nowrap">
                                     {s.name} <span className="tabular">{pct(s.share)}%</span>

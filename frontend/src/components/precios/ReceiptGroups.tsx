@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, MessageSquarePlus, Trash2 } from "lucide-react";
+import { ChevronRight, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { dayLabel, mxn2 } from "@/lib/format";
+import { fromIso } from "@/lib/porMes";
 import type { Receipt, ReceiptItem, ReferenceTerm } from "@/lib/prices";
 import { Button } from "@/components/ui";
 import { track } from "@/lib/telemetry";
-import type { Attachment } from "./PriceChat";
 import { fold } from "./basket";
 
 /**
@@ -27,28 +27,19 @@ import { fold } from "./basket";
  * further down. The data is the face's, not this list's: the basket bar above
  * and the product book below read the same tickets, so the tickets are handed
  * in rather than fetched here.
- *
- * A line's question is asked from the face's one chat, not from a thread per
- * ticket: pointing at a line hands it to that chat as a chip. One place to
- * ask keeps the transcript in one place too.
  */
 export function ReceiptGroups({
     receipts,
     terms,
-    query,
     onAssociate,
     onDelete,
-    onAsk,
     onVerCargo,
     focus,
 }: {
     receipts: Receipt[];
     terms: Record<string, ReferenceTerm>;
-    query: string;
     onAssociate: (productKey: string, term: string) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
-    /** A line handed to the face's chat as the subject of the next question. */
-    onAsk: (item: Attachment) => void;
     /** The charge this ticket was matched to, in the movimientos modal. */
     onVerCargo: (receipt: Receipt) => void;
     /** A ticket another card asked to see: opened and scrolled to. `gen`
@@ -69,23 +60,7 @@ export function ReceiptGroups({
         return () => window.clearTimeout(t);
     }, [focus]);
 
-    // Unlike the product book, this search is local: the ticket list is one
-    // page of baskets the user already has, and a round-trip per keystroke to
-    // re-filter what is already on screen would be slower and no more correct.
-    const shown = useMemo(() => {
-        const q = fold(query);
-        const all = [...receipts].sort(byNewest);
-        if (!q) return all;
-        return all.filter(
-            (r) =>
-                fold(r.store ?? "").includes(q) ||
-                r.items.some(
-                    (i) =>
-                        fold(i.description).includes(q) ||
-                        fold(terms[i.product_key]?.term ?? "").includes(q)
-                )
-        );
-    }, [receipts, query, terms]);
+    const shown = useMemo(() => [...receipts].sort(byNewest), [receipts]);
 
     function toggle(id: string) {
         if (!open.has(id)) track("precios.ticket_open", { open_before: open.size });
@@ -155,7 +130,6 @@ export function ReceiptGroups({
                                 onDelete={() => remove(receipt.id)}
                                 terms={terms}
                                 onAssociate={onAssociate}
-                                onAsk={onAsk}
                                 onVerCargo={() => onVerCargo(receipt)}
                             />
                         </li>
@@ -177,7 +151,6 @@ function ReceiptGroup({
     onDelete,
     terms,
     onAssociate,
-    onAsk,
     onVerCargo,
 }: {
     receipt: Receipt;
@@ -186,7 +159,6 @@ function ReceiptGroup({
     onDelete: () => Promise<void>;
     terms: Record<string, ReferenceTerm>;
     onAssociate: (productKey: string, term: string) => Promise<void>;
-    onAsk: (item: Attachment) => void;
     onVerCargo: () => void;
 }) {
     const count = receipt.items.length;
@@ -252,7 +224,6 @@ function ReceiptGroup({
                         receipt={receipt}
                         terms={terms}
                         onAssociate={onAssociate}
-                        onAsk={onAsk}
                     />
                     {receipt.transaction_id !== null && (
                         <div className="flex justify-end border-t border-muted/70 px-5 py-2 sm:px-6">
@@ -353,12 +324,10 @@ function ReceiptLines({
     receipt,
     terms,
     onAssociate,
-    onAsk,
 }: {
     receipt: Receipt;
     terms: Record<string, ReferenceTerm>;
     onAssociate: (productKey: string, term: string) => Promise<void>;
-    onAsk: (item: Attachment) => void;
 }) {
     const gap = receipt.total === null ? null : receipt.total - receipt.items_total;
     // A centavo of rounding is not a missing line. Anything above it is, and
@@ -402,9 +371,6 @@ function ReceiptLines({
                                         item={item}
                                         term={terms[item.product_key]}
                                         onAssociate={onAssociate}
-                                        onAsk={() =>
-                                            onAsk({ key: item.product_key, label: item.description })
-                                        }
                                     />
                                 ))}
                         </tbody>
@@ -430,12 +396,10 @@ function Line({
     item,
     term,
     onAssociate,
-    onAsk,
 }: {
     item: ReceiptItem;
     term?: ReferenceTerm;
     onAssociate: (productKey: string, term: string) => Promise<void>;
-    onAsk: () => void;
 }) {
     // The OCR line is the evidence for everything to the right. When the
     // reading of it is the same text there is nothing to show twice.
@@ -466,20 +430,6 @@ function Line({
             </td>
             <td className="tabular w-24 py-2 text-right align-top text-ink">
                 {mxn2(item.amount)}
-            </td>
-            <td className="py-2 pl-3 text-right align-top">
-                {/* Pointing, not wording: this is how a line becomes the subject
-                    of the question below, and the only thing that triggers a
-                    reference lookup. */}
-                <button
-                    type="button"
-                    onClick={onAsk}
-                    aria-label={`Preguntar por ${item.description}`}
-                    title="Preguntar por esta línea"
-                    className="rounded-control p-1 text-ash hover:bg-fog hover:text-ink"
-                >
-                    <MessageSquarePlus size={15} aria-hidden />
-                </button>
             </td>
         </tr>
     );
@@ -565,12 +515,21 @@ export function TermTag({
     );
 }
 
-/** "25 ago", the same shape every other row in the app uses for a date. */
-export function dateLabel(receipt: { purchased_at: string | null; captured_at: string | null }): string {
-    const iso = receipt.purchased_at ?? receipt.captured_at;
-    if (!iso) return "fecha ilegible";
-    const date = new Date(iso);
-    return Number.isNaN(date.getTime()) ? iso : dayLabel(date);
+/** "25 ago · 19:42", the same shape every other row in the app uses for a
+ *  date, plus the clock when the ticket printed one. A ticket with no
+ *  legible date falls back to the photo's, marked "≈". */
+export function dateLabel(receipt: {
+    purchased_at: string | null;
+    purchased_time?: string | null;
+    captured_at: string | null;
+}): string {
+    if (receipt.purchased_at) {
+        const day = dayLabel(fromIso(receipt.purchased_at));
+        return receipt.purchased_time ? `${day} · ${receipt.purchased_time}` : day;
+    }
+    if (!receipt.captured_at) return "fecha ilegible";
+    const date = new Date(receipt.captured_at);
+    return Number.isNaN(date.getTime()) ? receipt.captured_at : `≈ ${dayLabel(date)}`;
 }
 
 /** Newest purchase first; a ticket whose date OCR could not read goes last

@@ -15,8 +15,8 @@ import { categoryIcon } from "@/lib/categoryIcons";
 import { dayLabel, mxn2 } from "@/lib/format";
 import { parsePeriodKey } from "@/lib/metrics";
 import {
-    barFill,
     pct,
+    sliceColor,
     type CategorySlice,
     type SubGroup,
 } from "@/lib/categoryComposition";
@@ -45,7 +45,6 @@ import {
  */
 export function CategoryAccordion({
     slices,
-    barOrder,
     openKey,
     onToggle,
     onVerMas,
@@ -56,7 +55,6 @@ export function CategoryAccordion({
     aux,
 }: {
     slices: CategorySlice[];
-    barOrder: CategorySlice[];
     openKey: string | null;
     onToggle: (key: string) => void;
     onVerMas: (key: string) => void;
@@ -77,7 +75,6 @@ export function CategoryAccordion({
         aparteTotal: number;
     };
 }) {
-    const rankOf = new Map(barOrder.map((s, i) => [s.key, i]));
     const categories = useCategories();
     const banks = useStatementBanks();
     const rows = { categories, banks, attention, repeats };
@@ -99,8 +96,8 @@ export function CategoryAccordion({
             <ul className="divide-y divide-mist">
                 {slices.map((s) => {
                     const open = openKey === s.key;
-                    const rank = rankOf.get(s.key) ?? 0;
-                    const color = barFill(rank, s.uncategorized);
+                    // The category's own taxonomy color, as in the bar.
+                    const color = sliceColor(s, categories);
                     const Icon = s.uncategorized
                         ? CircleDashed
                         : categoryIcon(categories, s.key);

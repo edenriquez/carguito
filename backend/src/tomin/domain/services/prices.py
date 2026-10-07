@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -44,6 +44,11 @@ class PricePoint:
     per_base_unit: Decimal | None
     size: Decimal | None
     size_unit: str | None
+    #: When the photo was taken. Not the purchase date -- a ticket can be
+    #: photographed days later -- but the nearest thing to one a reading has
+    #: when the print carried no legible date, and a price history with no
+    #: dates is a list. Clients that fall back to it say so.
+    captured_at: datetime | None = None
 
     def value(self, basis: Basis) -> Decimal | None:
         return self.per_base_unit if basis == "unit" else self.each
@@ -205,6 +210,7 @@ def _point(receipt: Receipt, item: ReceiptItem) -> PricePoint:
         per_base_unit=item.per_base_unit,
         size=item.size,
         size_unit=item.size_unit,
+        captured_at=receipt.captured_at,
     )
 
 

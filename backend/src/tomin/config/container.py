@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from functools import cached_property
 
 from ..adapters.outbound.crypto import FileIngestKeyring
@@ -17,7 +19,11 @@ from ..adapters.outbound.metrics import (
     InvestmentProjectionResolver,
 )
 from ..adapters.outbound.parsing import DefaultParserFactory
-from ..adapters.outbound.receipts import HeuristicReceiptReader, LlmReceiptReader
+from ..adapters.outbound.receipts import (
+    HeuristicReceiptReader,
+    LlmReceiptReader,
+    RapidOcrReceiptOcr,
+)
 from ..adapters.outbound.references import (
     AmazonListingsReference,
     BraveSearch,
@@ -65,6 +71,7 @@ from ..application.use_cases import (
     GetMetricCatalogUseCase,
     GetSpendingSummaryUseCase,
     ListTransactionsUseCase,
+    IngestReceiptImageUseCase,
     IngestReceiptUseCase,
     ManageGoalsUseCase,
     ManageReceiptsUseCase,
@@ -86,6 +93,9 @@ from ..application.use_cases import (
     UpdateTransactionUseCase,
 )
 from .settings import Settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class Container:
@@ -368,6 +378,23 @@ class Container:
             receipts=self.receipts,
             transactions=self.transactions,
         )
+
+    @cached_property
+    def receipt_ocr(self):
+        """Who reads a ticket *photo*, for uploads from the web.
+
+        RapidOCR when its wheels are installed (the ``receipts`` extra), else
+        nothing: the upload endpoint then answers 503 and says what to
+        install. The phone never needs this; it reads its own photos.
+        """
+        if RapidOcrReceiptOcr.available():
+            return RapidOcrReceiptOcr()
+        logger.info("receipt ocr: rapidocr not installed; web ticket upload disabled")
+        return None
+
+    @cached_property
+    def ingest_receipt_image(self) -> IngestReceiptImageUseCase:
+        return IngestReceiptImageUseCase(ocr=self.receipt_ocr, ingest=self.ingest_receipt)
 
     @cached_property
     def manage_receipts(self) -> ManageReceiptsUseCase:

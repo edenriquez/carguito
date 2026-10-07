@@ -36,9 +36,6 @@ export type MonthsReading = {
     listed: MonthSlice[];
     total: number;
     count: number;
-    /** Mean over the months that hold cargos. A month with nothing on record
-     *  is not a month of zero spending, so it does not pull the mean down. */
-    average: number;
 };
 
 export const SPAN_MONTHS = 6;
@@ -127,7 +124,6 @@ export function composeMonths(
         listed: [...held].reverse(),
         total,
         count,
-        average: held.length > 0 ? total / held.length : 0,
     };
 }
 
@@ -143,4 +139,52 @@ export function monthName(key: MonthKey, withYear: boolean): string {
 /** Whether the keys touch more than one calendar year. */
 export function spansYears(keys: MonthKey[]): boolean {
     return new Set(keys.map((k) => k.slice(0, 4))).size > 1;
+}
+
+/* -------------------------------------------------------------------------- */
+/* The running month                                                          */
+/* -------------------------------------------------------------------------- */
+
+/** The anchor's month when the record stops before its last day: "al 6". */
+export type PartialMonth = { key: MonthKey; day: number };
+
+/**
+ * The span ends on the newest movement, so its last month is usually
+ * still running. Counting it as a month of spending pulls the mean down by
+ * however many days are missing — the chart marks it and the mean skips it.
+ */
+export function partialMonthOf(anchor: string): PartialMonth | null {
+    const key = monthKeyOf(anchor);
+    if (anchor >= monthBounds(key).end) return null;
+    return { key, day: fromIso(anchor).getDate() };
+}
+
+/** The mean over the months that hold cargos, the running one left out — a
+ *  month with nothing on record is not a month of zero spending. Falls back
+ *  to every held month when the running one is all there is. */
+export function completeAverage(months: MonthSlice[], partial: MonthKey | null): number {
+    const held = months.filter((m) => m.count > 0);
+    const complete = held.filter((m) => m.key !== partial);
+    const pool = complete.length > 0 ? complete : held;
+    return pool.length > 0 ? pool.reduce((s, m) => s + m.amount, 0) / pool.length : 0;
+}
+
+/** The month the title names — the biggest complete one, with how far it
+ *  sits above the mean. Null when there is no run to compare against. */
+export function peakMonth(
+    months: MonthSlice[],
+    average: number,
+    partial: MonthKey | null
+): { month: MonthSlice; over: number; lastComplete: boolean } | null {
+    const complete = months.filter((m) => m.count > 0 && m.key !== partial);
+    if (complete.length < 2 || average <= 0) return null;
+    const month = complete.reduce((a, b) => (b.amount > a.amount ? b : a));
+    if (month.amount <= average) return null;
+    return {
+        month,
+        over: (month.amount - average) / average,
+        // Against the window's last finished month, not its last month with
+        // cargos: a quiet month after the peak still makes the peak not-last.
+        lastComplete: month.key === months.filter((m) => m.key !== partial).at(-1)?.key,
+    };
 }

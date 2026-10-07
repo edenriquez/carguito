@@ -34,7 +34,7 @@ class RecurringItem:
     key: str
     label: str
     occurrences: int
-    frequency: str  # weekly | biweekly | monthly | bimonthly | yearly
+    frequency: str  # weekly | biweekly | monthly | bimonthly | semiannual | yearly
     typical_amount: Decimal
     monthly_equivalent: Decimal
     amount_stable: bool

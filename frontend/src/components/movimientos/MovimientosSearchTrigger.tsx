@@ -89,7 +89,9 @@ export function MovimientosSearchTrigger() {
                 "shadow-field",
                 // Full width on a phone, where it gets a row of its own out of
                 // the header's wrap rather than fighting the nav for 320px.
-                "w-full sm:w-[20rem] sm:focus-within:w-[27rem]",
+                // 24rem at rest, 32.5rem focused: both 20% over the old
+                // 20/27, so the focus still grows it by the same proportion.
+                "w-full sm:w-[24rem] sm:focus-within:w-[32.5rem]",
                 "transition-[width,box-shadow,background-color,border-color]",
                 "duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 "hover:border-muted",
@@ -98,7 +100,7 @@ export function MovimientosSearchTrigger() {
                 // A box that resizes is the one thing this setting is about.
                 // The halo and the hairline still change — those are state, not
                 // movement — but the width lands at its focused value.
-                "motion-reduce:sm:w-[27rem] motion-reduce:transition-none"
+                "motion-reduce:sm:w-[32.5rem] motion-reduce:transition-none"
             )}
         >
             <Search
