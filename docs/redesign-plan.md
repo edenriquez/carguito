@@ -1,4 +1,4 @@
-# Tomin Redesign — Architecture & UX Plan
+# Carguito Redesign — Architecture & UX Plan
 
 > **Estado al 2026-09-05** (auditoría de producto; sustituye al header
 > "proposal for review / nothing implemented" que quedó obsoleto).
@@ -31,12 +31,12 @@
 > enviado en 192050a). Ver la nota en §8.
 >
 > Lo que sigue se conserva como registro histórico de la propuesta original.
-> Companion: `docs/tomin-pipeline.excalidraw` (cómo funcionaba el sistema
+> Companion: `docs/carguito-pipeline.excalidraw` (cómo funcionaba el sistema
 > cuando se escribió).
 
 ## Context
 
-Tomin today is a display layer over a Flask API: six pages, three of which are
+Carguito today is a display layer over a Flask API: six pages, three of which are
 essentially static, all reading a handful of bespoke analytics endpoints. The
 home screen ("Resumen") shows three totals and a category breakdown.
 
@@ -248,7 +248,7 @@ paths — benchmark against public **INEGI ENIGH** household-expenditure deciles
 prior-12-month category means, plus price-tier detection once CFDI line items
 land.
 
-Also: the current dashboard ships a **fake** "Tomin AI Insight" card that
+Also: the current dashboard ships a **fake** "Carguito AI Insight" card that
 string-interpolates `top_category`. Placeholder intelligence is a trust cost —
 build it or delete it.
 

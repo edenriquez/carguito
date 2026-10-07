@@ -8,10 +8,10 @@ La educación financiera con datos propios funcionó como producto solo cuando e
 
 ## Antecedentes
 
-| App | País | Qué hizo | Cómo le fue | Lección para Tomin |
+| App | País | Qué hizo | Cómo le fue | Lección para Carguito |
 |---|---|---|---|---|
 | YNAB | EE. UU. | Método de cuatro reglas; la app existe para enseñarlo. Suscripción de pago desde el día uno. | Rentable y con comunidad fiel por más de una década, sin capital de riesgo. | La educación como método cobra. La gente paga por cambiar hábitos, no por ver gráficas. |
-| Truebill / Rocket Money | EE. UU. | Una sola lección como cuña: cobros recurrentes que no recuerdas, cancelación en un toque. | Comprada por Rocket en 2021 por ~1,275 MUSD. | La lectura de recurrentes de Tomin es exactamente esa cuña. |
+| Truebill / Rocket Money | EE. UU. | Una sola lección como cuña: cobros recurrentes que no recuerdas, cancelación en un toque. | Comprada por Rocket en 2021 por ~1,275 MUSD. | La lectura de recurrentes de Carguito es exactamente esa cuña. |
 | Cleo | Reino Unido | Chat con personalidad sobre tus movimientos; el "modo regaño" es la función más querida. | Cientos de millones de ingresos anuales, usuarios jóvenes. | El tono es producto. El manifiesto de voz ya lo sabe. |
 | Mint | EE. UU. | Agregación gratuita, categorías, consejos genéricos. Monetizó con ofertas de crédito. | Comprada por Intuit en 2009, cerrada en 2024. | El tablero gratuito no cambia hábitos y termina vendiendo crédito. |
 | GuiaBolso | Brasil | Finanzas personales gratis con lectura del banco; millones de usuarios. | Pivotó a marketplace de préstamos; comprada por PicPay en 2021. | En Latinoamérica el negocio se fue al crédito y la educación se diluyó. |
@@ -22,12 +22,12 @@ La educación financiera con datos propios funcionó como producto solo cuando e
 
 - **Una lección, no un tablero.** Truebill y YNAB ganaron con una idea que cabe en una frase.
 - **Cobrar desde el inicio o resignarse al crédito.** Todos los gratuitos terminaron vendiendo préstamos, lo contrario de educar.
-- **Personalidad con prueba.** Cleo regaña con tus números; la voz de Tomin ("opinión con su prueba al lado") es el mismo principio con más respeto.
+- **Personalidad con prueba.** Cleo regaña con tus números; la voz de Carguito ("opinión con su prueba al lado") es el mismo principio con más respeto.
 - **El ticket necesita un premio en la misma foto.** "Esto te costó $38 más que en Chedraui."
 
 ## Por qué México es distinto
 
-Fintonic, Finerio y Coru dependían de scraping con credenciales del usuario. En México eso nunca fue estable: los bancos cambian el portal, meten segundo factor y bloquean; las reglas secundarias de open finance de la Ley Fintech para datos transaccionales no aterrizaron. Cada caída del conector era un usuario perdido, y la app pedía la contraseña del banco, que es la desconfianza que la landing de Tomin nombra. El negocio se fue al crédito porque el producto base no se sostenía.
+Fintonic, Finerio y Coru dependían de scraping con credenciales del usuario. En México eso nunca fue estable: los bancos cambian el portal, meten segundo factor y bloquean; las reglas secundarias de open finance de la Ley Fintech para datos transaccionales no aterrizaron. Cada caída del conector era un usuario perdido, y la app pedía la contraseña del banco, que es la desconfianza que la landing de Carguito nombra. El negocio se fue al crédito porque el producto base no se sostenía.
 
 El estado de cuenta en PDF es la única entrada estable en México:
 
@@ -41,12 +41,12 @@ Segundo hueco que los productos extranjeros no ven: en México una parte grande 
 
 Cerrar el círculo con el siguiente estado de cuenta: "hace un mes te mostramos $1,400 en gasto hormiga; este mes fueron $600". Ninguna de estas apps dice un mes después si la lección funcionó. En México y por WhatsApp, no existe.
 
-## Implicaciones para Tomin
+## Implicaciones para Carguito
 
-- Tomin como **curso que tu propio estado de cuenta te da**: lecciones con disparador computable (formato de `advisor-principles.md`).
+- Carguito como **curso que tu propio estado de cuenta te da**: lecciones con disparador computable (formato de `advisor-principles.md`).
 - Tres cuñas candidatas: cobros que no recuerdas, tarjeta pagada al mínimo, lo que pagas de más en el súper.
 - Canal de entrada más fácil que una web: reenviar el PDF por WhatsApp.
-- **Decisión pendiente: cobrar por educar.** Los mexicanos que fracasaron no educaron mal; el gratis los obligó a vender crédito. Si Tomin educa, cobra por educar aunque sea poco, o encuentra quién pague sin ser un banco que presta.
+- **Decisión pendiente: cobrar por educar.** Los mexicanos que fracasaron no educaron mal; el gratis los obligó a vender crédito. Si Carguito educa, cobra por educar aunque sea poco, o encuentra quién pague sin ser un banco que presta.
 
 ## Pendientes de verificación
 

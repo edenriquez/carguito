@@ -1,6 +1,6 @@
-# Tomin landing
+# Carguito landing
 
-Standalone marketing site for Tomin. Next.js 14 + Tailwind 3, no backend, no
+Standalone marketing site for Carguito. Next.js 14 + Tailwind 3, no backend, no
 Supabase. Deployed on Vercel as its own project with **Root Directory =
 `landing`**.
 
@@ -58,7 +58,7 @@ Refresh it with `npm run tokens:sync`. Dark-surface additions live in
 
 ## Vercel
 
-1. Add New → Project → repo `edenriquez/tomin`.
+1. Add New → Project → repo `edenriquez/carguito`.
 2. Root Directory: `landing`. Framework: Next.js (auto).
 3. Environment variables: `NEXT_PUBLIC_APP_URL` (the deployed app). Optional
    `NEXT_PUBLIC_SITE_URL` for a custom domain; otherwise
